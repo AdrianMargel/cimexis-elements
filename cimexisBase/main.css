@@ -1,0 +1,347 @@
+html{
+	font-family: 'Montserrat', sans-serif;
+	background-color: #28282E;
+	color: white;
+}
+::selection {
+  background: #97F28060;
+}
+
+text-input{
+	display: block;
+	position: relative;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+number-input{
+	display: block;
+	position: relative;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+price-input{
+	display: block;
+	position: relative;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+price-input input{
+	text-align: right;
+}
+input{
+	border-radius: 8px;
+	border-bottom-right-radius: 0;
+	border-top-left-radius: 0;
+	border: 2px solid #525259;
+	background-color: #333336;
+	font-family: 'Montserrat', sans-serif;
+	color: white;
+	padding: 5px 10px;
+	font-size: 16px;
+}
+input:focus{
+	outline: none;
+}
+input:focus + .focused{
+	padding: 4px;
+	border-right: 4px solid #525259;
+	border-bottom: 4px solid #525259;
+	position: absolute;
+	top: calc(50% - 7px);
+	left: -18px;
+	transform: rotate(-45deg);
+}
+button{
+	border-radius: 8px;
+	border-bottom-right-radius: 0;
+	border-top-left-radius: 0;
+	font-size: 16px;
+	font-family: 'Montserrat', sans-serif;
+	border: none;
+	padding: 5px 10px;
+}
+button:focus{
+	outline: none;
+}
+
+intro-head{
+	position: relative;
+	z-index: 11;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: relative;
+	height: 400px;
+	background-color: #36363F;
+
+}
+intro-head .icon{
+	display: block;
+	position: absolute;
+	height: 400px;
+	width: 400px;
+	background-image: url('./img/logo.png');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+intro-head .title{
+	display: block;
+	position: absolute;
+	font-size: 26px;
+	font-weight: 700;
+	font-family: 'Sen', sans-serif;
+	text-align: center;
+	background-color: #36363F;
+	border-radius: 8px;
+	width: 250px;
+	padding: 10px 10px;
+	border: 2px solid white;
+}
+intro-head .title h1 text-display{
+	display: inline;
+}
+nav-control{
+	display: block;
+	background-color: #36363F;
+	box-shadow: 0 0 30px #00000080;
+	position: relative;
+}
+category-list list-repeater{
+	display: flex;
+	justify-content: center;
+	align-items: stretch;
+}
+category-list category-item{
+	display: flex;
+	justify-content: center;
+	align-items: stretch;
+	width: 200px;
+	height: 50px;
+}
+category-list category-item button{
+	flex-grow: 1;
+	font-family: 'Sen', sans-serif;
+	font-weight: 700;
+	font-size: 20px;
+	color: #A0A0A0;
+	background-color: transparent;
+	border: none;
+	text-align: center;
+	transition: border-color 0.2s, color 0.2s;
+	border-bottom-style: solid;
+	border-bottom-width: 4px;
+	border-color: transparent;
+	margin-top: 4px;
+	padding: 0;
+}
+category-list category-item button:hover{
+	color: white;
+	border-color: #A0A0A0;
+}
+category-list category-item.selected button{
+	color: #7AC16C;
+	border-color: #7AC16C;
+}
+category-list category-item button text-display{
+	position: relative;
+	z-index: 1;
+}
+
+nav-control{
+	width: 100%;
+	position: absolute;
+	z-index: 10;
+}
+nav-control .mid{
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	justify-content: center;
+	display: flex;
+	opacity: 0;
+	transition: opacity 0.5s;
+	pointer-events: none;
+}
+nav-control .mid .cover{
+	position: absolute;
+	transform: rotate(-45deg);
+}
+nav-control .mid .cover > div{
+	width: 65px;
+	height: 65px;
+	background-color: #36363F;
+	transform: skew(15deg,15deg);
+	box-shadow: 0 0 30px #00000080;
+}
+nav-control .mid .shadowHider{
+	background-color: #36363F;
+	position: absolute;
+	top: 0px;
+	height: 35px;
+	width: 100%;
+}
+nav-control .mid .icon{
+	width: 60px;
+	height: 60px;
+	background-image: url("./img/logoSmall.png");
+	background-position: center;
+	background-size: cover;
+	position: absolute;
+}
+nav-control .midGap{
+	margin-right: 0;
+	transition: margin 0.5s;
+}
+nav-control.down{
+	position: fixed;
+	top: 0;
+}
+nav-control.down .midGap{
+	margin-right: 50px;
+}
+nav-control.down .mid{
+	opacity: 1;
+}
+nav-control button{
+	border-radius: 0;
+}
+
+page-control{
+	position: relative;
+	display: none;
+	padding-top: 50px;
+	padding-bottom: 70px;
+	min-height: calc(100vh - 400px - 50px - 70px);
+}
+page-control.selected{
+	display: block;
+}
+page-control .content{
+	display: block;
+	margin: 0 auto;
+	max-width: 1000px;
+	padding: 40px;
+}
+page-control .content h2{
+	font-family: 'Sen', sans-serif;
+	font-size: 40px;
+	text-align: center;
+	margin-bottom: 40px;
+}
+page-control .content h3{
+	font-family: 'Sen', sans-serif;
+	font-size: 30px;
+	margin-top: 40px;
+	margin-bottom: 25px;
+	padding-bottom: 6px;
+	border-bottom: 4px solid #36363F;
+	position: relative;
+}
+page-control .content p{
+	font-size: 20px;
+	margin: 25px 0;
+}
+page-control .content section{
+	padding: 0 20px;
+}
+section-title{
+	position: relative;
+	display: block;
+	box-shadow: 0 0 20px #00000080;
+}
+section-title h3{
+	z-index: 1;
+}
+section-title .cover{
+	content: "";
+	position: absolute;
+	bottom: 0;
+	right: -20px;
+	left: -20px;
+	top: -20px;
+	background-color: #28282E;
+}
+
+end-symbol{
+	height: 70px;
+	display: flex;
+	justify-content: center;
+	opacity: 0.2;
+	position: absolute;
+	bottom: 0;
+	right: calc(50% - 90px);
+	width: 180px;
+}
+end-symbol .icon{
+	position: absolute;
+	top: 0px;
+	width: 60px;
+	height: 60px;
+	background-image: url("./img/logoSmall.png");
+	background-position: center;
+	background-size: cover;
+	z-index: 2;
+}
+end-symbol .line{
+	position: absolute;
+	top: 30px;
+	width: 100%;
+	border-top: 1px solid white;
+}
+end-symbol .cover{
+	position: absolute;
+	top: 0px;
+	width: 60px;
+	height: 60px;
+	background-color: #28282E;
+}
+
+price-calculator {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	position: relative;
+	/*Add a space on the bottom for this demo to avoid the scroll being locked to the bottom of the page*/
+	margin-bottom: 500px;
+}
+price-calculator list-repeater{
+	display: flex;
+	flex-direction: column;
+}
+price-calculator price-item{
+	display: flex;
+	margin-bottom: 10px;
+}
+price-calculator input{
+	display: flex;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+price-calculator price-input{
+	margin: 0;
+}
+price-calculator price-item button.negative{
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	border-left: none;
+}
+price-calculator button.positive{
+	width: 342px;
+}
+price-calculator price-display{
+	margin-top: 10px;
+}
+
+button.negative{
+	border: 2px solid #881B31;
+	background-color: #55111E;
+	font-weight: 800;
+	color: #AA223C;
+}
+button.positive{
+	border: 2px solid #2D881D;
+	background-color: #1C5512;
+	font-weight: 800;
+	color: #38AA24;
+}

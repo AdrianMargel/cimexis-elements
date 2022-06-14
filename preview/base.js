@@ -798,7 +798,6 @@ function css(strings,...keys){
 		tree.selector=topSelector;
 		// Flatten the nested css into valid flat css
 		let allStyles=flatten(tree);
-		console.log(allStyles);
 		// Create a css string from all the styles
 		return allStyles.join("\n");
 	}

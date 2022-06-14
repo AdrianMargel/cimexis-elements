@@ -152,7 +152,6 @@ class ReactiveArrayHandler extends ReactiveHandler{
 		}
 		let oldValue=target[prop];
 		let value=this.isRecursive?bind(val,this.isRecursive):val;
-		console.log(this.isRecursive,value)
 		target[prop]=value;
 
 		if(oldValue!==value){
@@ -308,7 +307,9 @@ class Capsule extends HTMLElement{
 		// Absorb all children
 		this.absorbChildren();
 		// Clean up all capsules inside this one so they can be recreated fresh
-		cleanCapsules(this);
+		this.directChildren.forEach(c=>{
+			cleanCapsules(c);
+		});
 	}
 	/**
 	 * Removes all child elements including the marker so the capsule can be removed without side effects
@@ -397,6 +398,8 @@ function cleanCapsules(target){
 	children.forEach(cleanCapsules);
 	if(isMarker(target)){
 		target.capsule.clean();
+	}else if(isCapsule(target)){
+		target.clean()
 	}
 }
 
@@ -458,6 +461,7 @@ function html(strings,...keys){
 
 		// Create an empty capsule
 		let capsule=newCapsule();
+		
 		/**
 		 * Populates the capsule with the dynamic values
 		 * 

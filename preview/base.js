@@ -393,14 +393,14 @@ function removeCapsules(target){
  * @param {HTMLElement} target The element to search
  */
 function cleanCapsules(target){
-	// Try to clean each child recursively
-	let children=[...target.childNodes];
-	children.forEach(cleanCapsules);
 	if(isMarker(target)){
 		target.capsule.clean();
 	}else if(isCapsule(target)){
 		target.clean()
 	}
+	// Try to clean each child recursively
+	let children=[...target.childNodes];
+	children.forEach(cleanCapsules);
 }
 
 //returns a function which will create a reactive dom element
@@ -461,7 +461,7 @@ function html(strings,...keys){
 
 		// Create an empty capsule
 		let capsule=newCapsule();
-		
+
 		/**
 		 * Populates the capsule with the dynamic values
 		 * 

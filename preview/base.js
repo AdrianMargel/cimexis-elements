@@ -1,3 +1,11 @@
+/*
+	This file contains useful methods and tools for creating websites.
+
+	I highly recomend using this plug in for VS Code: https://marketplace.visualstudio.com/items?itemName=Tobermory.es6-string-html
+*/
+
+
+
 //#region reactivity
 /*
 	█▀█ █▀▀ ▄▀█ █▀▀ ▀█▀ █ █ █ █ ▀█▀ █▄█
@@ -622,6 +630,196 @@ function html(strings,...keys){
 //#endregion
 
 
+//#region nested css
+/*
+	█▄ █ █▀▀ █▀ ▀█▀ █▀▀ █▀▄   █▀▀ █▀ █▀
+	█ ▀█ ██▄ ▄█  █  ██▄ █▄▀   █▄▄ ▄█ ▄█
+*/
+
+/**
+ * Used to create CSS styles.
+ * Supports nested styles, will automatically expand them.
+ * I know what you are thinking, "why not make the CSS reactive too?" And no. I'm not doing that. CSS already scares me.
+ * 
+ * @param {string[]} strings The strings from the string template
+ * @param  {...any} keys The keys from the string template
+ * @returns A function which when called will create a string containing the CSS styles 
+ */
+function css(strings,...keys){
+	/**
+	 * Converts values to strings
+	 * 
+	 * @param {*} key The value to convert to a string
+	 * @returns The string value
+	 */
+	function convert(key){
+		if(key==null){
+			// Display null and undefined as a blank string
+			return "";
+		}
+		let type=typeof key;
+		if(type=="function"){
+			if(isClass(key)){
+				// If it is a class then assume it is a custom element and get its custom element name
+				return customElementName(key);
+			}
+			// If it is a function then run it and convert the result
+			return convert(toEval());
+		}
+		if(type=="object"){
+			if(isIterable(key)){
+				// If it is iterable then turn it into an array
+				let array=[...key];
+				// Convert each item in the array
+				array=array.map(evaluate);
+				// Join each item into a single string
+				return array.join("");
+			}else if(key.isBound){
+				// If the value is bound then get its data and convert it.
+				// If the bound value is an object then .data will return undefined.
+				// This is acceptable since only bound primitives should used.
+				return convert(key.data);
+			}else{
+				// Again, complex objects will just display the same as undefined
+				return convert(undefined);
+			}
+		}
+		// If the value is something else then just return it and allow it to be cast as a string directly
+		return toEval;
+	}
+	// Create a single string from what was given with all of the values converted to strings.
+	let nestedStyles=strings[0]+keys.map((k,i)=>convert(k)+strings[i+1]).join("");
+	// The top level selector to use
+	return (topSelector="body")=>{
+		/**
+		 * Parses a string of nested CSS into a tree of objects
+		 * 
+		 * @param {char[]} arr The array of chars to parse 
+		 * @returns A tree representing the nested CSS
+		 */
+		function parse(arr){
+			// The styles for this node
+			let styles="";
+			// The current run of parsed chars since something interesting happened
+			let run="";
+			// The children for this node
+			let children=[];
+
+			// Continune parsing until the array runs out of new chars or a "}" is reached
+			while(arr.length){
+				// Get the next char
+				let char=arr.shift();
+				// If the char is "{" then parse it recursively
+				if(char=="{"){
+					// Get the child's selector based of the current run
+					let selector=run.trim();
+					// Rest the run
+					run="";
+					// Parse the child
+					let child=parse(arr,children);
+					// Set the child's selector
+					child.selector=selector;
+					// Add the child
+					children.push(child);
+				
+				// If the char is "}" then stop parsing and exit 
+				}else if(char=="}"){
+					break;
+
+				// If the char is ";" or newline then start a new run
+				}else if(char==";"||char=="\n"){
+					// Add the existing characters to the styles
+					styles+=(run+char);
+					// Reset the run
+					run="";
+
+				// Add any un-exciting characters to the run
+				}else{
+					run+=char;
+				}
+			}
+			// Add any remaining text from the run to the styles
+			styles+=run;
+			// Return everything
+			return {
+				children,
+				styles:styles.trim(),
+				selector:""
+			};
+		}
+		/**
+		 * Flattens a tree of nested CSS objects into a list of valid CSS strings
+		 * 
+		 * @param {object} branch The tree branch to parse
+		 * @param {string} selector The parent selector of this branch
+		 * @returns The list of CSS strings for this branch
+		 */
+		function flatten(branch,selector=""){
+			// Get the selector for this element
+			selector=mergeSelectors(selector,branch.selector);
+
+			// Recursively flatten all children into an array of CSS strings
+			let textArr=branch.children.flatMap(
+				(c)=>flatten(c,selector)
+			);
+
+			// Trim the styles
+			let trimmedStyles=branch.styles.trim();
+			// If there are any styles then add a CSS selector with them
+			if(trimmedStyles!=""){
+				textArr.unshift(selector+"{"+branch.styles+"}");
+			}
+
+			// Return the CSS text
+			return textArr;
+		}
+		/**
+		 * Merge two CSS selectors.
+		 * Note that "&" is a special character to represent the parent selector directly.
+		 * 
+		 * @param {string} base The base selector the child is under
+		 * @param {string} child The child selector
+		 * @returns The merged selector
+		 */
+		function mergeSelectors(base,child){
+			let trimmed=child.trim();
+			if(trimmed.length>0&&trimmed[0]=="&"){
+				return (base.trim()+trimmed.replace("&","")).trim();
+			}else{
+				return (base.trim()+" "+trimmed).trim();
+			}
+		}
+
+		// Expand the nested styles into valid CSS styles
+		let allChars=nestedStyles.split("");
+		let tree=parse(allChars);
+		
+		// Set the top selector
+		tree.selector=topSelector;
+		// Flatten the nested css into valid flat css
+		let allStyles=flatten(tree);
+		console.log(allStyles);
+		// Create a css string from all the styles
+		return allStyles.join("\n");
+	}
+}
+
+/**
+ * Adds a set of css styles to the document
+ * 
+ * @param {string} cssStyles The styles to add
+ */
+function createStyles(cssStyles){
+	let styleSheet=document.createElement("style");
+	styleSheet.textContent=cssStyles;
+	document.head.appendChild(styleSheet);
+	return styleSheet;
+}
+
+
+//#endregion
+
+
 //#region custom elements
 /*
 	█▀▀ █ █ █▀ ▀█▀ █▀█ █▀▄▀█   █▀▀ █   █▀▀ █▀▄▀█ █▀▀ █▄ █ ▀█▀ █▀
@@ -642,15 +840,34 @@ class CustomElm extends HTMLElement{
 		addElm(capsule,this);
 		capsule.disolve();
 	}
+	getStyleSheet(){
+		return this.constructor.styleSheet;
+	}
 }
 /**
  * A function to define a custom element based on a class
+ * 
  * @param {class} elmClass The class to define as a custom element
+ * @param {function} cssFunc A function which will provide a string of css when called
  */
-function defineElm(elmClass){
+function defineElm(elmClass,cssStyles){
+	let fullName=customElementName(elmClass);
+	customElements.define(fullName, elmClass);
+	//  If there are css styles for this element then add them as nested styles
+	if(cssStyles!=null){
+		elmClass.styleSheet=createStyles(cssStyles(fullName));
+	}
+}
+/**
+ * Gets a custom element name for a class
+ * 
+ * @param {class} elmClass The class to make into a custom element name
+ * @returns The custom element name
+ */
+function customElementName(elmClass){
 	let nameSpace="cmx";
-	let className=elmClass.name.replace(/(.)([A-Z])/g, "$1-$2").toLowerCase(); 
-	customElements.define(nameSpace+"-"+className, elmClass);
+	return nameSpace+"-"+pascalToSlugCase(elmClass.name);
+	
 }
 
 //#endregion
@@ -945,6 +1162,24 @@ function isIterable(toTest){
 		return false;
 	}
 	return typeof toTest[Symbol.iterator]=='function';
+}
+/**
+ * Converts PascalCase text to slug-case
+ *  
+ * @param {string} text The text to convert
+ * @returns The text as slug case
+ */
+function pascalToSlugCase(text){
+	return text.replace(/(.)([A-Z])/g, "$1-$2").toLowerCase()
+}
+/**
+ * Check if a value is a class
+ * 
+ * @param {*} toTest The value to test
+ * @returns If the value is a class
+ */
+function isClass(toTest) {
+	return typeof toTest=="function"&&/^\s*class\s+/.test(toTest.toString());
 }
 
 //#endregion

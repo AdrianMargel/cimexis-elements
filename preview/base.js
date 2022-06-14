@@ -145,7 +145,6 @@ class ReactiveArrayHandler extends ReactiveHandler{
 	 * @returns true
 	 */
 	set(target,prop,val) {
-		console.log("set",prop);
 		if(prop=="length"){
 			target[prop]=val;
 			this.update();
@@ -370,7 +369,7 @@ defineElm(Capsule);
 /**
  * Disolves all capsules within this element
  * 
- * @param {HTMLElement} target The element to update
+ * @param {HTMLElement} target The element to search
  */
 function removeCapsules(target){
 	// If the element is a capsule prepare it to be disolved
@@ -390,7 +389,7 @@ function removeCapsules(target){
 /**
  * Cleans all capsules within this element
  * 
- * @param {HTMLElement} target The element to update
+ * @param {HTMLElement} target The element to search
  */
 function cleanCapsules(target){
 	// Try to clean each child recursively
@@ -554,6 +553,9 @@ function html(strings,...keys){
 				return comments;
 			}
 
+			// Before doing anything keep track of the focused element before the DOM updates
+			saveFocus();
+
 			// Create a copy of the html text to update with the new values
 			let replacedHtmlText=htmlText;
 			// Evaluate all the placeholder values
@@ -598,6 +600,8 @@ function html(strings,...keys){
 			// Now that the capsule has been populated disolve it releasing all of its children
 			// This will also disolve all nested capsules inside
 			capsule.disolve();
+			// Restore focus to the element that was focused before the DOM updated
+			restoreFocus();
 			// Return the capsule
 			return capsule;
 		}
@@ -686,8 +690,36 @@ function fireFromHTML(event,id){
 	EventRegistration["event"+id](event);
 }
 
+//#endregion
+
+
+//#region persistence
+/*
+	█▀█ █▀▀ █▀█ █▀ █ █▀ ▀█▀ █▀▀ █▄ █ █▀▀ █▀▀
+	█▀▀ ██▄ █▀▄ ▄█ █ ▄█  █  ██▄ █ ▀█ █▄▄ ██▄
+*/
+
+/**
+ * The currently focused element
+ */
+let focusedElement=null;
+/**
+ * Gets and saves the currently focused element so it can be restored later
+ */
+function saveFocus(){
+	focusedElement=document.activeElement;
+}
+/**
+ * Restore focus to the saved focused element
+ */
+function restoreFocus(){
+	if(focusedElement!=null){
+		focusedElement.focus();
+	}
+}
 
 //#endregion
+
 
 //#region utility
 /*

@@ -258,8 +258,7 @@ function def(definition,...bindings){
 	// The binding should not be recursive
 	let bound=bind(null,false);
 	let update=()=>{bound.data=definition()};
-	link(update,...bindings);
-	update();
+	link(update,...bindings)();
 	return bound;
 }
 /**
@@ -267,9 +266,11 @@ function def(definition,...bindings){
  * 
  * @param {Function} toRun The function to run
  * @param  {...any} bindings The bound objects the function should subscribe to
+ * @returns The toRun function
  */
 function link(toRun,...bindings){
 	bindings.forEach((b)=>{b.sub(toRun)});
+	return toRun;
 }
 
 //#endregion
@@ -297,12 +298,30 @@ class Capsule extends HTMLElement{
 		this.directChildren=[];
 		this.isCapsule=true;
 		this.marker=newComment();
+		this.marker.isMarker=true;
+		this.marker.capsule=this;
 	}
 	/**
-	 * Absorbs all of the child elements it had previously released back into itself.
-	 * This is used to clear the disolved capsule before updating it.
+	 * Absorbs all of the child elements it had previously released back into itself and cleans all capsules inside.
+	 * This is used to absorb the disolved capsule before updating it.
 	 */
 	absorb(){
+		// Absorb all children
+		this.absorbChildren();
+		// Clean up all capsules inside this one so they can be recreated fresh
+		cleanCapsules(this);
+	}
+	/**
+	 * Removes all child elements including the marker so the capsule can be removed without side effects
+	 */
+	clean(){
+		this.absorbChildren();
+		removeElm(this.marker);
+	}
+	/**
+	 * Absorb all direct children of this element back into itself
+	 */
+	absorbChildren(){
 		// Remove all direct children from the dom
 		this.directChildren.forEach(c=>{
 			// If somehow the marker ended up in the directChildren list ignore it.
@@ -311,20 +330,7 @@ class Capsule extends HTMLElement{
 				return;
 			}
 			addElm(c,this);
-			// If the direct child is a capsule then also absorb it since it can be assumed it has also disolved
-			if(isCapsule(c)){
-				// Do a full clean ensuring that the the marker is also removed
-				// Since this capsule is a direct child it is safe to remove it's marker since it will be added back directly
-				c.clean();
-			}
 		});
-	}
-	/**
-	 * Removes all child elements including the marker so the capsule can be removed without side effects
-	 */
-	clean(){
-		this.absorb();
-		removeElm(this.marker);
 	}
 	/**
 	 * Moves the capsule to its marker. The marker indicates where the capsule was last disolved.
@@ -364,7 +370,7 @@ defineElm(Capsule);
 /**
  * Disolves all capsules within this element
  * 
- * @param {HTMLElement} target 
+ * @param {HTMLElement} target The element to update
  */
 function removeCapsules(target){
 	// If the element is a capsule prepare it to be disolved
@@ -379,6 +385,19 @@ function removeCapsules(target){
 	// This happens recursively after each capsule has been prepared (depth first)
 	if(isCapsule(target)){
 		replaceElm(target,target.childNodes,false);
+	}
+}
+/**
+ * Cleans all capsules within this element
+ * 
+ * @param {HTMLElement} target The element to update
+ */
+function cleanCapsules(target){
+	// Try to clean each child recursively
+	let children=[...target.childNodes];
+	children.forEach(cleanCapsules);
+	if(isMarker(target)){
+		target.capsule.clean();
 	}
 }
 
@@ -701,6 +720,15 @@ function newCapsule(){
  */
 function isCapsule(toTest){
 	return toTest.isCapsule;
+}
+/**
+ * Checks if an element is a marker for a capsule
+ * 
+ * @param {*} toTest The element to check
+ * @returns If the element is a marker
+ */
+function isMarker(toTest){
+	return toTest.isMarker;
 }
 /**
  * Creates a new element

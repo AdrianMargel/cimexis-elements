@@ -292,6 +292,8 @@ function link(toRun,...bindings){
 	█▀▄ ██▄ █▀█ █▄▄  █  █ ▀▄▀ ██▄   █▀█  █  █ ▀ █ █▄▄
 */
 
+//TODO: finding capsules to disolve and absorb them is very inefficient right now. There is probably a better solution
+
 /**
  * A placeholder element that acts as a temporary capsule allowing the construction and manipulation of a local DOM tree.
  * When the local DOM tree is complete the capsule can be disolved releasing all of its child elements its parent.
@@ -306,7 +308,7 @@ class Capsule extends HTMLElement{
 		super();
 		this.isCapsule=true;
 
-		this.startMarker=newComment(Math.random()+"");
+		this.startMarker=newComment();
 		this.startMarker.isMarker=true;
 		this.startMarker.capsule=this;
 

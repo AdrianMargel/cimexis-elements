@@ -292,7 +292,14 @@ function link(toRun,...bindings){
 	█▀▄ ██▄ █▀█ █▄▄  █  █ ▀▄▀ ██▄   █▀█  █  █ ▀ █ █▄▄
 */
 
-//TODO: finding capsules to disolve and absorb them is very inefficient right now. There is probably a better solution
+/*
+TODO: Finding capsules to disolve and absorb them is very inefficient right now. There is probably a better solution. (Such as using query selectors)
+
+Update: I looked into this, even completely disabling absorb() and disolve() doesn't have a significant impact on preformance
+It looks like most of the time goes to parsing and rendering html which is unrelated to this.
+I figured recursively iterating through every DOM element to find the capsules would present a preformance issue
+but apparently traversing and moving around elements in the DOM is pretty cheap compared to rendering them which we can't get around anyways.
+*/
 
 /**
  * A placeholder element that acts as a temporary capsule allowing the construction and manipulation of a local DOM tree.

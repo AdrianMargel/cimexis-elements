@@ -1,7 +1,9 @@
 /*
 	This file contains useful methods and tools for creating websites.
 
-	I highly recomend using this plug in for VS Code: https://marketplace.visualstudio.com/items?itemName=Tobermory.es6-string-html
+	I highly recomend using these plug ins for VS Code:
+		https://marketplace.visualstudio.com/items?itemName=Tobermory.es6-string-html
+		https://marketplace.visualstudio.com/items?itemName=ZaydekMichels-Gualtieri.sass-template-strings
 */
 
 
@@ -477,66 +479,6 @@ function html(strings,...keys){
 		 */
 		function populate(){
 			/**
-			 * Evaluates a dynamic value
-			 * This will attempt to resolve the value to a string, element, or capsule that can be added to the html
-			 * Values are evaluated recursively whenever is possible to do so
-			 * 
-			 * @param {*} toEval The dynamic value to evaluate
-			 * @returns The value to add to the html
-			 */
-			function evaluate(toEval){
-				if(toEval==null){
-					// Display null and undefined as a blank string
-					return "";
-				}
-				let type=typeof toEval;
-				if(type=="function"){
-					// If it is a function then run it and evaluate the result
-					return evaluate(toEval());
-				}
-				if(type=="object"){
-					if(isIterable(toEval)){
-						// If it is iterable then turn it into an array
-						let array=[...toEval];
-						// Evaluate each item in the array
-						array=array.map(evaluate);
-
-						if(array.some(n=>isElm(n))){
-							// If any item in the array is an element then return a capsule with all the values as child elements
-							// This has to be done since if one of the items is an element it can't be turned into a string
-							let childCapsule=newCapsule();
-							array.forEach(n=>{
-								if(isElm(n)){
-									addElm(n,childCapsule);
-								}else{
-									// If the item isn't an element then take its value and turn it into a text node
-									// This way it can be added to the capsule like any other element
-									addElm(newText(n+""),childCapsule);
-								}
-							});
-							return childCapsule;
-						}else{
-							// If all items in the array can be expressed as strings then join them together into a single string and return it.
-							return array.join("");
-						}
-					}else if(toEval.isBound){
-						// If the value is bound then get its data and evaluate it.
-						// If the bound value is an object then .data will return undefined.
-						// This is acceptable since how objects should be displayed is ambiguous, only bound primitives should used.
-						// Technically we could check for undefined here and display it as json if it is an object.
-						return evaluate(toEval.data);
-					}else if(isElm(toEval)){
-						// If the object is an element return it as is
-						return toEval;
-					}else{
-						// Again, complex objects will just display the same as undefined
-						return evaluate(undefined);
-					}
-				}
-				// If the value is something else then just return it and allow it to be cast as a string directly
-				return toEval;
-			}
-			/**
 			 * Recursively finds all placeholder comments inside an element
 			 * A placeholder comment is an comment containing text in the format of $[number]
 			 * 
@@ -577,12 +519,16 @@ function html(strings,...keys){
 
 			// Replace all placeholders with either the dynamic value or a placeholder comment
 			placeholdersResults.forEach((p,i)=>{
-				if(!isElm(p)){
-					// If the placeholder value isn't an element then use it as a string and replace its placeholder in the HTML
-					replacedHtmlText=replacedHtmlText.replace("$("+i+")",p);
-				}else{
+				if(isElm(p)){
 					// If the placeholder value is an element then create a placeholder comment to mark its location
 					replacedHtmlText=replacedHtmlText.replace("$("+i+")","<!--$["+i+"]-->");
+				}else if(isAttr(p)){
+					// If the placeholder value is an attribute then keep the placeholder for now but wrap it in quotes so it can be set as the attribute
+					// Add an "attribute-#" to be able to search for the element later
+					replacedHtmlText=replacedHtmlText.replace(`$(${i})`,`"$(${i})" attribute-${i}="true" `);
+				}else{
+					// Otherwise use the placeholder value as a string and replace its placeholder in the HTML
+					replacedHtmlText=replacedHtmlText.replace("$("+i+")",p);
 				}
 			});
 
@@ -604,6 +550,27 @@ function html(strings,...keys){
 				if(isElm(p)){
 					// Replace the placeholder comment with the correct element
 					replaceElm(placeholderComments[i+""],p);
+				}else if(isAttr(p)){
+					// If the placeholder value is an attribute then locate the attribute and replace it
+
+					// Create variables to represent the placeholder values that need to be searched for
+					let placeholderVal=`$(${i})`;
+					let placeholderAttr=`attribute-${i}`;
+
+					// Locate the element with the attribute
+					let elm=getElm(`[${placeholderAttr}]`,capsule);
+					
+					// Find the correct attribute
+					let attrList=[...elm.attributes];
+					let matched=attrList.find((a)=>a.value==placeholderVal);
+
+					// Attach the attribute
+					p.attach(matched.name,elm);
+					// Update the attribute
+					p.update();
+
+					// Remove the placeholder attribute
+					elm.removeAttribute(placeholderAttr);
 				}
 			});
 			
@@ -630,6 +597,119 @@ function html(strings,...keys){
 //#endregion
 
 
+//#region Reactive Attributes
+/*
+	█▀█ █▀▀ ▄▀█ █▀▀ ▀█▀ █ █ █ █▀▀   ▄▀█ ▀█▀ ▀█▀ █▀█ █ █▄▄ █ █ ▀█▀ █▀▀ █▀
+	█▀▄ ██▄ █▀█ █▄▄  █  █ ▀▄▀ ██▄   █▀█  █   █  █▀▄ █ █▄█ █▄█  █  ██▄ ▄█
+*/
+
+//TODO: garbage collection?
+
+/**
+ * A reactive HTML element attribute
+ */
+class Attribute{
+	/**
+	 * A basic constructor
+	 * 
+	 * @param {*} value The value of the attribute 
+	 * @param  {...any} bindings Bound variables to bind to, if any of these update the attribute will automatically update
+	 */
+	constructor(value,...bindings){
+		this.element=null;
+		this.attrName=null;
+		this.value=value;
+		this.isAttribute=true;
+
+		link(()=>{this.update()},...bindings);
+	}
+	/**
+	 * Attaches this attribute to a specific element so it can update automatically
+	 * 
+	 * @param {string} attrName The name of the attribute
+	 * @param {HTMLElement} element The element this attribute is a part of 
+	 */
+	attach(attrName,element){
+		this.attrName=attrName;
+		this.element=element;
+	}
+	/**
+	 * Updates this attribute on the element it is a part of
+	 */
+	update(){
+		if(this.element==null){
+			// If this attribute hasn't been attached yet then do nothing
+			return;
+		}
+
+		let val=evaluate(this.value);
+		if(isAction(val)){
+			// For actions remove the html attribute and set the attribute directly to the lambda
+			// We assume that the capitalisation on the attribute name is correct in the html
+			this.element.removeAttribute(this.attrName);
+			this.element[this.attrName]=val.getValue();
+		}else{
+			// Use a switch statement to normalize setting of html attributes.
+			// I really wish this wasn't required but HTML attributes don't all follow the same rules, so we need to account for the differences in behaviour.
+			// This will probably need to be expanded as new HTML attributes are encountered.
+			switch(this.attrName){
+				case "value":{
+					this.element.setAttribute(this.attrName,val);
+					// Must also set the attribute directly since the html value attribute only acts as an initial value
+					this.element[this.attrName]=val;
+					break;
+				}
+				default:
+					this.element.setAttribute(this.attrName,val);
+			}
+		}
+	}
+}
+/**
+ * An action which should be tied to an event attribute (like onClick)
+ */
+class AttributeAction{
+	/**
+	 * A basic constructor
+	 * 
+	 * @param {function} value The event to fire
+	 */
+	constructor(value){
+		this.value=value;
+		this.isAction=true;
+	}
+	/**
+	 * Gets the value of this action
+	 * 
+	 * @returns The value
+	 */
+	getValue(){
+		return this.value;
+	}
+}
+/**
+ * Creates an action. Typically used for setting event attributes (like onClick)
+ * 
+ * @param {function} toRun The action to run 
+ * @returns The attribute action
+ */
+function act(toRun){
+	return new AttributeAction(toRun);
+}
+/**
+ * Creates an attribute for an HTML element
+ * 
+ * @param {*} value The value of the attribute
+ * @param  {...any} bindings Bound variables to attach to that determine when the attribute should update
+ * @returns The attribute
+ */
+function attr(value,...bindings){
+	return new Attribute(value,...bindings);
+}
+
+//#endregion
+
+
 //#region nested css
 /*
 	█▄ █ █▀▀ █▀ ▀█▀ █▀▀ █▀▄   █▀▀ █▀ █▀
@@ -638,57 +718,16 @@ function html(strings,...keys){
 
 /**
  * Used to create CSS styles.
- * Supports nested styles, will automatically expand them.
+ * Supports scss-like nested styles, will automatically expand them.
  * I know what you are thinking, "why not make the CSS reactive too?" And no. I'm not doing that. CSS already scares me.
  * 
  * @param {string[]} strings The strings from the string template
  * @param  {...any} keys The keys from the string template
  * @returns A function which when called will create a string containing the CSS styles 
  */
-function css(strings,...keys){
-	/**
-	 * Converts values to strings
-	 * 
-	 * @param {*} key The value to convert to a string
-	 * @returns The string value
-	 */
-	function convert(key){
-		if(key==null){
-			// Display null and undefined as a blank string
-			return "";
-		}
-		let type=typeof key;
-		if(type=="function"){
-			if(isClass(key)){
-				// If it is a class then assume it is a custom element and get its custom element name
-				return customElementName(key);
-			}
-			// If it is a function then run it and convert the result
-			return convert(toEval());
-		}
-		if(type=="object"){
-			if(isIterable(key)){
-				// If it is iterable then turn it into an array
-				let array=[...key];
-				// Convert each item in the array
-				array=array.map(evaluate);
-				// Join each item into a single string
-				return array.join("");
-			}else if(key.isBound){
-				// If the value is bound then get its data and convert it.
-				// If the bound value is an object then .data will return undefined.
-				// This is acceptable since only bound primitives should used.
-				return convert(key.data);
-			}else{
-				// Again, complex objects will just display the same as undefined
-				return convert(undefined);
-			}
-		}
-		// If the value is something else then just return it and allow it to be cast as a string directly
-		return toEval;
-	}
+function scss(strings,...keys){
 	// Create a single string from what was given with all of the values converted to strings.
-	let nestedStyles=strings[0]+keys.map((k,i)=>convert(k)+strings[i+1]).join("");
+	let nestedStyles=strings[0]+keys.map((k,i)=>evaluate(k)+strings[i+1]).join("");
 	// The top level selector to use
 	return (topSelector="body")=>{
 		/**
@@ -872,47 +911,6 @@ function customElementName(elmClass){
 //#endregion
 
 
-//#region HTML event binding
-/*
-	█ █ ▀█▀ █▀▄▀█ █     █▀▀ █ █ █▀▀ █▄ █ ▀█▀   █▄▄ █ █▄ █ █▀▄ █ █▄ █ █▀▀
-	█▀█  █  █ ▀ █ █▄▄   ██▄ ▀▄▀ ██▄ █ ▀█  █    █▄█ █ █ ▀█ █▄▀ █ █ ▀█ █▄█
-*/
-
-//TODO: garbage collection?
-/**
- * A dictionary of registered events that can be called from the html
- */
-let EventRegistration={};
-/**
- * The current event id
- */
-let currentRegistrationId=0;
-
-/**
- * Registers an event function which can be called by from the html.
- * Returns a string for the html to call the registered function.
- * 
- * @param {function} func The function to run 
- * @returns The string representing how the function should be called
- */
-function fire(func){
-	let id=currentRegistrationId++;
-	EventRegistration["event"+id]=func;
-	return "fireFromHTML(event,"+id+")";
-}
-/**
- * Allows a registered event to be fired from html
- * 
- * @param {*} event The event 
- * @param {number} id The id of the registered event 
- */
-function fireFromHTML(event,id){
-	EventRegistration["event"+id](event);
-}
-
-//#endregion
-
-
 //#region persistence
 /*
 	█▀█ █▀▀ █▀█ █▀ █ █▀ ▀█▀ █▀▀ █▄ █ █▀▀ █▀▀
@@ -941,6 +939,77 @@ function restoreFocus(){
 //#endregion
 
 
+//#region evaluation
+/*
+	█▀▀ █ █ ▄▀█ █   █ █ ▄▀█ ▀█▀ █ █▀█ █▄ █
+	██▄ ▀▄▀ █▀█ █▄▄ █▄█ █▀█  █  █ █▄█ █ ▀█
+*/
+
+/**
+ * Evaluates a dynamic value.
+ * This will attempt to resolve the value to a string, attribute, element, or capsule that can be added to the html.
+ * Values are evaluated recursively whenever is possible to do so.
+ * 
+ * @param {*} toEval The dynamic value to evaluate
+ * @returns The value to add to the html
+ */
+ function evaluate(toEval){
+	if(toEval==null){
+		// Display null and undefined as a blank string
+		return "";
+	}
+	let type=typeof toEval;
+	if(type=="function"){
+		if(isClass(toEval)){
+			// If it is a class then assume it is a custom element and get its custom element name
+			return customElementName(toEval);
+		}
+		// If it is a function then run it and evaluate the result
+		return evaluate(toEval());
+	}
+	if(type=="object"){
+		if(isIterable(toEval)){
+			// Note: lists should not contain attributes.
+			// Each attribute can only be set to a single place, a list of them doesn't make sense
+
+			// If it is iterable then turn it into an array
+			let array=[...toEval];
+			// Evaluate each item in the array
+			array=array.map(evaluate);
+
+			if(array.some(n=>isElm(n))){
+				// If any item in the array is an element then return a capsule with all the values as child elements
+				// This has to be done since if one of the items is an element it can't be turned into a string
+				let childCapsule=newCapsule();
+				array.forEach(n=>{
+					if(isElm(n)){
+						addElm(n,childCapsule);
+					}else{
+						// If the item isn't an element then take its value and turn it into a text node
+						// This way it can be added to the capsule like any other element
+						addElm(newText(n+""),childCapsule);
+					}
+				});
+				return childCapsule;
+			}else{
+				// If all items in the array can be expressed as strings then join them together into a single string and return it.
+				return array.join("");
+			}
+		}else if(toEval.isBound){
+			// If the value is bound then get its data and evaluate it.
+			// If the bound value is an object then .data will return undefined.
+			// This is acceptable since how objects should be displayed is ambiguous, only bound primitives should used.
+			// Technically we could check for undefined here and display it as json if it is an object.
+			return evaluate(toEval.data);
+		}
+	}
+	// If the value is something else then just return it
+	return toEval;
+}
+
+//#endregion
+
+
 //#region utility
 /*
 	█ █ ▀█▀ █ █   █ ▀█▀ █▄█
@@ -948,39 +1017,12 @@ function restoreFocus(){
 */
 
 /**
- * Checks if a value is an html element
- * 
- * @param {*} toTest The value to check 
- * @returns If the value is an element
- */
-function isElm(toTest){
-	return toTest instanceof Element
-}
-/**
  * Creates a new Capsule.
  * 
  * @returns The new capsule
  */
 function newCapsule(){
 	return new Capsule();
-}
-/**
- * Checks if an element is a capsule
- * 
- * @param {*} toTest The element to check
- * @returns If the element is a capsule
- */
-function isCapsule(toTest){
-	return toTest.isCapsule;
-}
-/**
- * Checks if an element is a marker for a capsule
- * 
- * @param {*} toTest The element to check
- * @returns If the element is a marker
- */
-function isMarker(toTest){
-	return toTest.isMarker;
 }
 /**
  * Creates a new element
@@ -1151,6 +1193,18 @@ function clearElm(target){
 	}
 }
 /**
+ * Converts PascalCase text to slug-case
+ *  
+ * @param {string} text The text to convert
+ * @returns The text as slug case
+ */
+function pascalToSlugCase(text){
+	return text.replace(/(.)([A-Z])/g, "$1-$2").toLowerCase()
+}
+
+//#region type checks
+
+/**
  * Checks if a value is iterable
  * 
  * @param {*} toTest The value to test
@@ -1163,15 +1217,6 @@ function isIterable(toTest){
 	return typeof toTest[Symbol.iterator]=='function';
 }
 /**
- * Converts PascalCase text to slug-case
- *  
- * @param {string} text The text to convert
- * @returns The text as slug case
- */
-function pascalToSlugCase(text){
-	return text.replace(/(.)([A-Z])/g, "$1-$2").toLowerCase()
-}
-/**
  * Check if a value is a class
  * 
  * @param {*} toTest The value to test
@@ -1180,5 +1225,62 @@ function pascalToSlugCase(text){
 function isClass(toTest) {
 	return typeof toTest=="function"&&/^\s*class\s+/.test(toTest.toString());
 }
+/**
+ * Check if a value is bound
+ * 
+ * @param {*} toTest The value to test
+ * @returns If the value is a bound
+ */
+ function isBound(toTest){
+	return toTest.isBound;
+}
+/**
+ * Check if a value is an attribute
+ * 
+ * @param {*} toTest The value to test
+ * @returns If the value is a an attribute
+ */
+function isAttr(toTest){
+	return toTest.isAttribute;
+}
+
+/**
+ * Check if a value is an action
+ * 
+ * @param {*} toTest The value to test
+ * @returns If the value is a an action
+ */
+function isAction(toTest){
+	return toTest.isAction;
+}
+/**
+ * Checks if a value is an html element
+ * 
+ * @param {*} toTest The value to check 
+ * @returns If the value is an element
+ */
+ function isElm(toTest){
+	return toTest instanceof Element
+}
+/**
+ * Checks if an element is a capsule
+ * 
+ * @param {*} toTest The element to check
+ * @returns If the element is a capsule
+ */
+function isCapsule(toTest){
+	return toTest.isCapsule;
+}
+/**
+ * Checks if an element is a marker for a capsule
+ * 
+ * @param {*} toTest The element to check
+ * @returns If the element is a marker
+ */
+function isMarker(toTest){
+	return toTest.isMarker;
+}
+
+//#endregion
 
 //#endregion

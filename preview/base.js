@@ -223,7 +223,8 @@ function bindProxy(data,handler){
  function bind(data,recursive=true){
 
 	// If the data is a primitive then wrap it inside an object and bind that
-	if(typeof data!=="object" || data==null){
+	// Also treat elements like primitives
+	if(typeof data!=="object" || data==null || isElm(data)){
 		return bindGeneral({data},recursive);
 	}
 

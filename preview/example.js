@@ -15,10 +15,10 @@ let testList=bind([10,20,"test"]);
 let testRepeater=html`
 <h1>Repeater</h1>
 <button
-	onclick="${fire(()=>{
+	onClick=${attr(act(()=>{
 		let randomId=(Math.random()+1).toString(36).substring(7);
 		testList.push("Item - "+randomId);
-	})}"
+	}))}
 >
 	Add New Item
 </button>
@@ -29,7 +29,7 @@ ${()=>testList.map(
 		<div>
 			Index: ${i} Value: ${new Item(n)} - 
 				<button
-				onclick="${fire(()=>{testList.splice(i,1)})}"
+				onClick=${attr(act(()=>{testList.splice(i,1)}))}
 			>
 				Remove Item
 			</button>

@@ -304,64 +304,80 @@ class Capsule extends HTMLElement{
 	 */
 	constructor(){
 		super();
-		this.directChildren=[];
 		this.isCapsule=true;
-		this.marker=newComment();
-		this.marker.isMarker=true;
-		this.marker.capsule=this;
+
+		this.startMarker=newComment(Math.random()+"");
+		this.startMarker.isMarker=true;
+		this.startMarker.capsule=this;
+
+		this.endMarker=newComment();
+		this.endMarker.isMarker=false;// Only consider the first marker as a marker for this capsule's location
+		this.endMarker.capsule=this;
 	}
 	/**
-	 * Absorbs all of the child elements it had previously released back into itself and cleans all capsules inside.
-	 * This is used to absorb the disolved capsule before updating it.
+	 * Absorbs all of the child elements it had previously released back into itself.
+	 * All child capsules will also be absorbed.
+	 * This is used to reset the capsule before updating it.
 	 */
 	absorb(){
-		// Absorb all children
-		this.absorbChildren();
-		// Clean up all capsules inside this one so they can be recreated fresh
-		this.directChildren.forEach(c=>{
-			cleanCapsules(c);
-		});
-	}
-	/**
-	 * Removes all child elements including the marker so the capsule can be removed without side effects
-	 */
-	clean(){
-		this.absorbChildren();
-		removeElm(this.marker);
-	}
-	/**
-	 * Absorb all direct children of this element back into itself
-	 */
-	absorbChildren(){
-		// Remove all direct children from the dom
-		this.directChildren.forEach(c=>{
-			// If somehow the marker ended up in the directChildren list ignore it.
-			// The marker is used to indicate the capsule's location so it shouldn't be removed.
-			if(this.marker===c){
-				return;
-			}
-			addElm(c,this);
-		});
-	}
-	/**
-	 * Moves the capsule to its marker. The marker indicates where the capsule was last disolved.
-	 * This is used to update the capsule without requiring the parent to update its DOM.
-	 */
-	deliver(){
-		replaceElm(this.marker,this,false);
-	}
-	/**
-	 * Prepare the capsule to be disolved
-	 */
-	prepare(){
-		if(this.parentNode==null){
-			// The capsule can't be disolved unless it is inside of another element
-			return;
+		// Move the capsule to its marker
+		replaceElm(this.startMarker,this,true);
+		
+		let toAbsorb=[];
+		let child=this.startMarker;
+		// Iterate through each child and add it to the list of elements that should be absorbed back into the capsule
+		// Try to cause each child to also absorb itself of any capsules inside
+		// When the end marker is hit then the scan is complete
+		while(child!==this.endMarker&&child!=null){
+			toAbsorb.push(child);
+			child=tryAbsorb(child.nextSibling);
 		}
-		// Identify all direct children that are going to be released 
-		this.directChildren=[...this.childNodes];
-		// Add the marker to the capsule so the location where the capsule was released can be kept track of after the capsule is disolved
-		addElm(this.marker,this);
+		toAbsorb.push(this.endMarker);
+
+		// Add all child elements back inside the capsule
+		addElm(toAbsorb,this);
+
+		/**
+		 * Try to absorb an element and all of the capsules inside it
+		 * 
+		 * @param {HTMLElement} target The element to absorb
+		 * @returns The target element of the capsule it was absorbed into if it was a marker
+		 */
+		function tryAbsorb(target){
+			if(target==null){
+				return null;
+			}
+			if(isMarker(target)){
+				// If it is a marker then absorb the parent capsule
+				target.capsule.absorb();
+				// Return the capsule since that is what has replaced the marker's location
+				return target.capsule;
+			}else{
+				// If the target is an element then loop through all the children recursively looking for markers and trying to absorb them.
+				if(target.childNodes.length>0){
+					// Start at the first child
+					let tarChild=target.childNodes[0];
+					while(tarChild!=null){
+						// Try to absorb the child into a pill
+						tarChild=tryAbsorb(tarChild);
+						// Get the next child and repeat until there are none left
+						tarChild=tarChild.nextSibling;
+					}
+				}
+				return target;
+			}
+		}
+	}
+	/**
+	 * Fills the capsule with HTML
+	 * 
+	 * @param {string} htmlText The HTML to set for this capsule
+	 */
+	fill(htmlText){
+		this.innerHTML=htmlText;
+		// Add the markers to the start and end
+		addElmAt(this.startMarker,0,this);
+		addElm(this.endMarker,this);
 	}
 	/**
 	 * Disolve the capsule releasing its children into its parent.
@@ -373,46 +389,26 @@ class Capsule extends HTMLElement{
 			return;
 		}
 		// Disolve the capsule and all capsules inside it
-		removeCapsules(this);
+		tryDisolve(this);
+		
+		/**
+		 * Disolves all capsules within an element
+		 * 
+		 * @param {HTMLElement} target The element to search
+		 */
+		function tryDisolve(target){
+			// Get the current children before the capsule disolves
+			let children=[...target.childNodes];
+			// If the element is a capsule then disolve it
+			if(isCapsule(target)){
+				replaceElm(target,target.childNodes);
+			}
+			// Try to disolve each child recursively
+			children.forEach(tryDisolve);
+		}
 	}
 }
 defineElm(Capsule);
-
-/**
- * Disolves all capsules within this element
- * 
- * @param {HTMLElement} target The element to search
- */
-function removeCapsules(target){
-	// If the element is a capsule prepare it to be disolved
-	// This happens recusively before any of the capsules are disolved (breadth first)
-	if(isCapsule(target)){
-		target.prepare();
-	}
-	// Try to disolve each child recursively
-	let children=[...target.childNodes];
-	children.forEach(removeCapsules);
-	// If the element is a capsule then disolve it
-	// This happens recursively after each capsule has been prepared (depth first)
-	if(isCapsule(target)){
-		replaceElm(target,target.childNodes,false);
-	}
-}
-/**
- * Cleans all capsules within this element
- * 
- * @param {HTMLElement} target The element to search
- */
-function cleanCapsules(target){
-	if(isMarker(target)){
-		target.capsule.clean();
-	}else if(isCapsule(target)){
-		target.clean()
-	}
-	// Try to clean each child recursively
-	let children=[...target.childNodes];
-	children.forEach(cleanCapsules);
-}
 
 //returns a function which will create a reactive dom element
 /**
@@ -538,13 +534,13 @@ function html(strings,...keys){
 			});
 
 			// Populate the capsule with the dynamic string values
-			// If the capsule was already disolved then reset it by absorbing it and re-delivering it.
+			// If the capsule was already disolved then reset it by absorbing it
 			capsule.absorb();
-			capsule.deliver();
 			// Set the innerHTML.
 			// At this point anything that could be added to the DOM as a string has been added.
-			// The remaining placeholders are elements or capsules that can't be added until after the HTML is populated.
-			capsule.innerHTML=replacedHtmlText;
+			// The remaining placeholders are elements, attributes or capsules that can't be added until after the HTML is populated.
+			capsule.fill(replacedHtmlText);
+			
 			
 			/* STEP 2-B: Populate elements */
 
@@ -1100,10 +1096,10 @@ function removeElm(target){
  * @param {HTMLElement} target The element to add it to
  */
 function addElmAt(toAdd,index,target){
-	if(index>=target.children.length){
+	if(index>=target.childNodes.length){
 		target.appendChild(toAdd);
 	}else{
-		target.insertBefore(toAdd,target.children[index])
+		target.insertBefore(toAdd,target.childNodes[index])
 	}
 }
 /**
@@ -1113,7 +1109,7 @@ function addElmAt(toAdd,index,target){
  * @returns The index of the element
  */
 function getElmIdx(target){
-	return [...target.parentNode.children].indexOf(target);
+	return [...target.parentNode.childNodes].indexOf(target);
 }
 /**
  * Replaces an element with another element or list of elements

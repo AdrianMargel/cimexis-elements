@@ -456,9 +456,13 @@ function html(strings,...keys){
 			}
 			let type=typeof key;
 			if((type=="object"||type=="function")){
-				if(key.isHtmlFunction){
-					// If this is an html function with no bindings then allow it to inherit the bindings
-					return placehold(key(...bindings));
+				if(isBinding(key)){
+					// If this is an binding function with no bindings then see if it should inherit the bindings
+					if(key.inheritBindings){
+						return placehold(key(...bindings));
+					}else{
+						return placehold(key());
+					}
 				}
 				return placehold(key);
 			}
@@ -588,9 +592,9 @@ function html(strings,...keys){
 		// This is done by creating a reactive definition based on the populate function.
 		return def(()=>populate(),...bindings);
 	}
-	// Indicate that the the function is an HTML function.
+	// Indicate that the the function is a binding function.
 	// This allows it to be detected and inherit bindings from its parent if it is used inside another html template
-	htmlFunc.isHtmlFunction=true;
+	markBinding(htmlFunc);
 	return htmlFunc;
 }
 
@@ -700,11 +704,16 @@ function act(toRun){
  * Creates an attribute for an HTML element
  * 
  * @param {*} value The value of the attribute
- * @param  {...any} bindings Bound variables to attach to that determine when the attribute should update
- * @returns The attribute
+ * @returns A function which will bind and return the attribute
  */
-function attr(value,...bindings){
-	return new Attribute(value,...bindings);
+function attr(value){
+	let bindFunc=(...bindings)=>new Attribute(value,...bindings);
+	// Making this a binding function means that it can inherit bindings from the html`` it is inside of
+	// Or at least it could, but when the html`` updates all attributes are forced to update as well
+	// So to avoid redundancy updates this won't inherit the bindings from its parent
+	// But I'm still marking this as a binding function since that's what it is
+	markBinding(bindFunc,false);
+	return bindFunc;
 }
 
 //#endregion
@@ -1201,9 +1210,30 @@ function clearElm(target){
 function pascalToSlugCase(text){
 	return text.replace(/(.)([A-Z])/g, "$1-$2").toLowerCase()
 }
+/**
+ * Marks a function as a binding function
+ * That is, a function that expects be called with a set of bound variables for it to bind to
+ *
+ * @param {function} func The binding function
+ * @param {boolean} inheritBindings If the binding function should be allowed to inherit bindings from its parent
+ */
+ function markBinding(func,inheritBindings=true){
+	func.isBindingFunction=true;
+	func.inheritBindings=inheritBindings;
+}
 
 //#region type checks
 
+/**
+ * Checks if a value is a binding function
+ * That is, a function that expects be called with a set of bound variables for it to bind to
+ * 
+ * @param {*} toTest The value to test
+ * @returns If the value is a binding function
+ */
+function isBinding(toTest){
+	return !!toTest.isBindingFunction;
+}
 /**
  * Checks if a value is iterable
  * 

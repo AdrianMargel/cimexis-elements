@@ -329,6 +329,12 @@ class Capsule extends HTMLElement{
 	 * This is used to reset the capsule before updating it.
 	 */
 	absorb(){
+		if(this.contains(this.startMarker)){
+			// If the capsule already contains the start marker then it is already absorbed
+			// This can happen if the capsule has been disconnected from the DOM since if it has no parent then it can't disolve
+			// In this case just return
+			return;
+		}
 		// Move the capsule to its marker
 		replaceElm(this.startMarker,this,true);
 		
@@ -419,7 +425,7 @@ class Capsule extends HTMLElement{
 }
 defineElm(Capsule);
 
-//returns a function which will create a reactive dom element
+// TODO: clean strings before inserting them, strings cannot contain $(#) or $[#]
 /**
  * Used to create reactive HTML
  * 
@@ -541,6 +547,7 @@ function html(strings,...keys){
 					replacedHtmlText=replacedHtmlText.replace("$("+i+")",p);
 				}
 			});
+
 
 			// Populate the capsule with the dynamic string values
 			// If the capsule was already disolved then reset it by absorbing it
@@ -1030,6 +1037,18 @@ function restoreFocus(){
 	█ █ ▀█▀ █ █   █ ▀█▀ █▄█
 	█▄█  █  █ █▄▄ █  █   █ 
 */
+
+/**
+ * HTML encodes a string
+ * 
+ * @param {string} rawStr The string to encode
+ * @returns The encoded string
+ */
+function encodeHTML(rawStr){
+	return rawStr.replace(/[\u00A0-\u9999<>\&]/g, function(i) {
+		return '&#'+i.charCodeAt(0)+';';
+	});
+}
 
 /**
  * Creates a new Capsule.

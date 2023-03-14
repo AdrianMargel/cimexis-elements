@@ -6,6 +6,13 @@
 		https://marketplace.visualstudio.com/items?itemName=ZaydekMichels-Gualtieri.sass-template-strings
 */
 
+/*
+	TODO:
+		-svg``
+		-txt``
+		-persistance>naivigation (browser back and forward)
+		-documentation types/return types
+*/
 
 
 //#region reactivity
@@ -259,8 +266,8 @@ function bindProxy(data,handler){
  * Regardless of what value is returned by the definition function it will always be treated like a wrapped primitive.
  * A definition can return another bound object though; that's acceptable
  * 
- * @param {Function} definition The function to determine the value
- * @param  {...any} bindings The bound objects which this value depends on. If any of these change the value will be updated.
+ * @param {function} definition The function to determine the value
+ * @param {...any} bindings The bound objects which this value depends on. If any of these change the value will be updated.
  * @returns The bound object based on the definition
  */
 function def(definition,...bindings){
@@ -273,8 +280,8 @@ function def(definition,...bindings){
 /**
  * Links a function to a set of bound objects. The function will be added as a subscription to each bound object.
  * 
- * @param {Function} toRun The function to run
- * @param  {...any} bindings The bound objects the function should subscribe to
+ * @param {function} toRun The function to run
+ * @param {...any} bindings The bound objects the function should subscribe to
  * @returns The toRun function
  */
 function link(toRun,...bindings){
@@ -425,12 +432,16 @@ class Capsule extends HTMLElement{
 }
 defineElm(Capsule);
 
+// TODO: add text`` function
+
+// TODO: add svg function
+
 // TODO: clean strings before inserting them, strings cannot contain $(#) or $[#]
 /**
  * Used to create reactive HTML
  * 
  * @param {string[]} strings The strings from the string template
- * @param  {...any} keys The keys from the string template
+ * @param {...any} keys The keys from the string template
  * @returns A function which when called will produce a bound reactive Capsule element
  */
 function html(strings,...keys){
@@ -630,7 +641,7 @@ class Attribute{
 	 * A basic constructor
 	 * 
 	 * @param {*} value The value of the attribute 
-	 * @param  {...any} bindings Bound variables to bind to, if any of these update the attribute will automatically update
+	 * @param {...any} bindings Bound variables to bind to, if any of these update the attribute will automatically update
 	 */
 	constructor(value,...bindings){
 		this.element=null;
@@ -744,14 +755,14 @@ function attr(value){
  * I know what you are thinking, "why not make the CSS reactive too?" And no. I'm not doing that. CSS already scares me.
  * 
  * @param {string[]} strings The strings from the string template
- * @param  {...any} keys The keys from the string template
+ * @param {...any} keys The keys from the string template
  * @returns A function which when called will create a string containing the CSS styles 
  */
 function scss(strings,...keys){
 	// Create a single string from what was given with all of the values converted to strings.
 	let nestedStyles=strings[0]+keys.map((k,i)=>evaluate(k)+strings[i+1]).join("");
 	// The top level selector to use
-	return (topSelector="body")=>{
+	return (topSelector="html")=>{
 		/**
 		 * Parses a string of nested CSS into a tree of objects
 		 * 
@@ -891,17 +902,55 @@ function createStyles(cssStyles){
  * This holds common useful behaviour
  */
 class CustomElm extends HTMLElement{
+	/**
+	 * A basic constructor
+	 */
 	constructor(){
 		super();
+		// A list of the attributes set on this element
+		this.attributeList=[];
 	}
+	/**
+	 * Sets the html content of this element
+	 * 
+	 * @param {*} htmlDef The html`` definition for this element
+	 */
 	define(htmlDef){
+		// Get the capsule containing the html
 		this.htmlDef=(typeof htmlDef=="function")?htmlDef():htmlDef;
 		let capsule=this.htmlDef.data;
+		// Place the capsule inside this element and then disolve it to populate the content of this element
 		addElm(capsule,this);
 		capsule.disolve();
 	}
+	/**
+	 * Gets the css styleSheet for this element
+	 * 
+	 * @returns The styleSheet
+	 */
 	getStyleSheet(){
 		return this.constructor.styleSheet;
+	}
+	/**
+	 * Sets an attribute for this element
+	 * 
+	 * @param {string} attrName The name of the attribute
+	 * @param {*} value The value of the attribute
+	 * @returns A function which will bind the attribute and return this element
+	 */
+	attr(attrName,value){
+		let bindFunc=(...bindings)=>{
+			let toAdd=new Attribute(value,...bindings);
+			this.attributeList.push(toAdd);
+			toAdd.attach(attrName,this);
+			toAdd.update();
+			// Return the element so it can be added to the DOM
+			return this;
+		}
+		// Making this a binding function means that it can inherit bindings from the html`` it is inside of
+		// Unlike the other attr() function could actually be meaningful since the element won't get recreated when html updates
+		markBinding(bindFunc,true);
+		return bindFunc;
 	}
 }
 /**
@@ -913,7 +962,7 @@ class CustomElm extends HTMLElement{
 function defineElm(elmClass,cssStyles){
 	let fullName=customElementName(elmClass);
 	customElements.define(fullName, elmClass);
-	//  If there are css styles for this element then add them as nested styles
+	// If there are css styles for this element then add them as nested styles
 	if(cssStyles!=null){
 		elmClass.styleSheet=createStyles(cssStyles(fullName));
 	}
@@ -1032,11 +1081,161 @@ function restoreFocus(){
 //#endregion
 
 
+//#region animation
+/*
+	▄▀█ █▄ █ █ █▀▄▀█ ▄▀█ ▀█▀ █ █▀█ █▄ █
+	█▀█ █ ▀█ █ █ ▀ █ █▀█  █  █ █▄█ █ ▀█
+*/
+
+/**
+ * An animation effect
+ */
+class GenericAnimation{
+	/**
+	 * A function that runs for each frame of an animation.
+	 * Time is managed as a value between 0 and 1, calculated by scaling the time by the animation duration.
+	 * It will run a single time when the animation first starts (at time=0).
+	 * It will run a single time when the animation ends (at time=1).
+	 * If the animation is infinite then the time will continue infinitely past 1 but will still be scaled by the animation duration.
+	 * 
+ 	 * @callback animationFunc
+	 * @param {number} time The current animation time (between 0 and 1)
+	 * @param {number} timeDiff The time difference since the animation previously run (between 0 and 1)
+	 */
+	
+	/**
+	 * A basic constructor
+	 * 
+	 * @param {animationFunc} func The function to run each time the animation should update.
+	 * @param {number} duration The number of seconds the animation should run for
+	 * @param {boolean} isInfinite If the animation is infinite, if false the animation will stop after its duration
+	 */
+	constructor(func,duration=1,isInfinite=false){
+		this.duration=duration*1000;
+		this.isInfinite=isInfinite;
+		this.func=func;
+		this.animationSub=()=>{
+			this.run();
+		};
+		this.elapsed=0;
+		this.time=0;
+	}
+	/**
+	 * Run the animation
+	 * 
+	 * @returns This animation object 
+	 */
+	run(){
+		// Get time
+		let currTime=getTime();
+		let timeDiff=(currTime-this.time)/this.duration;
+		let elapsedNext=this.elapsed+timeDiff;
+
+		// Check if the animation should end
+		if(!this.isInfinite&&elapsedNext>=1){
+			// Set the time to 1 so the animation function will trigger once with a time of 1 before ending
+			elapsedNext=1;
+			timeDiff=1-this.elapsed;
+			// Stop the animation from continuing
+			this.stop();
+		}
+
+		// Update time variables
+		this.elapsed=elapsedNext;
+		this.time=currTime;
+
+		// Run the animation function
+		this.func(this.elapsed,timeDiff);
+
+		return this;
+	}
+	/**
+	 * Starts playing the animation from the beginning
+	 * 
+	 * @returns This animation object
+	 */
+	start(){
+		// Reset the animation elapsed time to 0
+		this.elapsed=0;
+		// Cause the animation to start playing
+		this.resume();
+
+		return this;
+	}
+	/**
+	 * Resumes playing the animation
+	 * 
+	 * @returns This animation object
+	 */
+	resume(){
+		// Update the time with the current time
+		this.time=getTime();
+		// Subscribe to the animationUpdateNum so that the animationSub will be triggered each frame 
+		animationUpdateNum.sub(this.animationSub);
+		// Run once from the current point in the animation
+		this.run();
+
+		return this;
+	}
+	/**
+	 * Stops the animation from playing
+	 * 
+	 * @returns This animation object
+	 */
+	stop(){
+		// Unsubscribe from animationUpdateNum so that the animationSub will no longer be triggered each frame
+		animationUpdateNum.unSub(this.animationSub);
+
+		return this;
+	}
+}
+/**
+ * Creates and returns a GenericAnimation object
+ * 
+ * @param {function} func The function to run each time the animation should update
+ * @param {number} duration The number of seconds the animation should run for
+ * @param {boolean} isInfinite If the animation is infinite, if false the animation will stop after its duration
+ * @returns The animation object
+ */
+function animate(func,duration=1,isInfinite=false){
+	return new GenericAnimation(func,duration,isInfinite);
+}
+
+/**
+ * The current animation frame number, will update each time requestAnimationFrame runs.
+ * This is used to trigger animation related subscriptions each animation frame. 
+ */
+let animationUpdateNum=bind(0);
+/**
+ * A function which triggers each animation frame
+ */
+function animationLoop(){
+	// Increment the animation number
+	animationUpdateNum.data++;
+	// Request the next animation frame
+	requestAnimationFrame(animationLoop);
+}
+// Start the animation loop
+animationLoop();
+
+//#endregion
+
+
 //#region utility
 /*
 	█ █ ▀█▀ █ █   █ ▀█▀ █▄█
 	█▄█  █  █ █▄▄ █  █   █ 
 */
+
+/**
+ * HTML encodes a string
+ * 
+ * @param {string} text The string to encode
+ * @returns The encoded string
+ */
+function safe(text){
+	return encodeHTML(text);
+}
 
 /**
  * HTML encodes a string
@@ -1098,6 +1297,7 @@ function newComment(text=""){
  * 
  * @param {HTMLElement|HTMLElement[]} toAdd The element or list of elements to add
  * @param {HTMLElement} target The element to add it to 
+ * @returns The target element that had the element(s) added to it
  */
 function addElm(toAdd,target){
 	if(isIterable(toAdd)){
@@ -1107,14 +1307,17 @@ function addElm(toAdd,target){
 	}else{
 		target.appendChild(toAdd);
 	}
+	return target;
 }
 /**
  * Removes an element
  * 
- * @param {HTMLElement} target The element to remove 
+ * @param {HTMLElement} target The element to remove
+ * @returns The element that was removed
  */
 function removeElm(target){
 	target.remove();
+	return target;
 }
 /**
  * Adds an element at a specific index to another element
@@ -1171,24 +1374,28 @@ function replaceElm(target,replaceWith,keep=false){
  * 
  * @param {string} classes A string representing the classes to add, separate multiple classes with a space
  * @param {HTMLElement} elm The element to add the class to
+ * @returns The element that was changed
  */
 function addClass(classes,elm){
 	let classSplit=classes.split(" ");
 	for(let i=0;i<classSplit.length;i++){
 		elm.classList.add(classSplit[i]);
 	}
+	return elm;
 }
 /**
  * Removes a class or list of classes from an element
  * 
  * @param {string} classes A string representing the classes to remove, separate multiple classes with a space
  * @param {HTMLElement} elm The element to remove the class from
+ * @returns The element that was changed
  */
 function removeClass(classes,elm){
 	let classSplit=classes.split(" ");
 	for(let i=0;i<classSplit.length;i++){
 		elm.classList.remove(classSplit[i]);
 	}
+	return elm;
 }
 /**
  * Finds an element
@@ -1219,16 +1426,18 @@ function getElms(selector,target){
 /**
  * Removes all child elements from an element
  * 
- * @param {HTMLElement} target The element to clear 
+ * @param {HTMLElement} target The element to clear
+ * @returns The element that was cleared
  */
 function clearElm(target){
 	while(target.firstChild) {
 		target.removeChild(target.lastChild);
 	}
+	return target;
 }
 /**
  * Converts PascalCase text to slug-case
- *  
+ * 
  * @param {string} text The text to convert
  * @returns The text as slug case
  */
@@ -1245,6 +1454,15 @@ function pascalToSlugCase(text){
  function markBinding(func,inheritBindings=true){
 	func.isBindingFunction=true;
 	func.inheritBindings=inheritBindings;
+}
+
+/**
+ * Get the current time
+ * 
+ * @returns The time in milliseconds
+ */
+function getTime(){
+	return (new Date()).getTime();
 }
 
 //#region type checks

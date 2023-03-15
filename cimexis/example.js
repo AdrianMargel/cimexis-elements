@@ -127,7 +127,7 @@ class ElementExamples extends CustomElm{
 				</div>
 				<p class="center">
 					The text currently is:<br/>
-					<span class="text">${html`${()=>encodeHTML(htmlText.data)}`(htmlText)}</span>
+					<span class="text">${html`${()=>safe(htmlText.data)}`(htmlText)}</span>
 				</p>
 			</div>
 		`);

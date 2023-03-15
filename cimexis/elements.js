@@ -9,32 +9,6 @@
 
 */
 
-//TODO: support in depth color classes, make it it's own file/module
-class Color{
-	constructor(rOrC=0,g=0,b=0,a=1){
-		if(typeof rOrC=="object"){
-			this.r=rOrC.r;
-			this.g=rOrC.g;
-			this.b=rOrC.b;
-			this.a=rOrC.a;
-		}else if(isHex(rOrC)){
-			let c=hexToRgb(rOrC);
-			this.r=c.r/255;
-			this.g=c.g/255;
-			this.b=c.b/255;
-			this.a=1;
-		}else{
-			this.r=rOrC;
-			this.g=g;
-			this.b=b;
-			this.a=a;
-		}
-	}
-	toString(){
-		return rgbToHex(this.r*255,this.g*255,this.b*255,this.a*255);
-	}
-}
-
 function sigmoid(x){
 	return 1/(1+Math.pow(Math.E,-x));
 }

@@ -1039,7 +1039,9 @@ function restoreFocus(){
 		return evaluate(toEval());
 	}
 	if(type=="object"){
-		if(isIterable(toEval)){
+		if(isColor(toEval)){
+			return toEval.toString();
+		}else if(isIterable(toEval)){
 			// Note: lists should not contain attributes.
 			// Each attribute can only be set to a single place, a list of them doesn't make sense
 
@@ -1516,7 +1518,6 @@ function isClass(toTest) {
 function isAttr(toTest){
 	return toTest.isAttribute;
 }
-
 /**
  * Check if a value is an action
  * 
@@ -1552,6 +1553,15 @@ function isCapsule(toTest){
  */
 function isMarker(toTest){
 	return toTest.isMarker;
+}
+/**
+ * Checks if an object is a color
+ * 
+ * @param {*} toTest The object to check
+ * @returns If the object is a color
+ */
+function isColor(toTest){
+	return toTest instanceof Color;
 }
 
 //#endregion

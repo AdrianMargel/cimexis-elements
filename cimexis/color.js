@@ -19,6 +19,8 @@ class Color extends Vector{
 				super(0,0,0,0);
 				this.fromHex(r);
 				this.space=COLOR.RGB;
+			}else if(r instanceof Color){
+				super(r.x,r.y,r.z,r.a,r.space);
 			}else{
 				super(...r);
 				this.pad([0,0,0,a]);
@@ -260,6 +262,7 @@ class Color extends Vector{
 		return new Color(this);
 	}
 
+	// z
 	get r(){
 		return this.array[0]??0;
 	}
@@ -267,6 +270,14 @@ class Color extends Vector{
 		return this.array[0]??0;
 	}
 
+	set r(val){
+		return this.array[0]=val;
+	}
+	set h(val){
+		return this.array[0]=val;
+	}
+
+	// y
 	get g(){
 		return this.array[1]??0;
 	}
@@ -277,6 +288,17 @@ class Color extends Vector{
 		return this.array[1]??0;
 	}
 
+	set g(val){
+		return this.array[1]=val;
+	}
+	set s(val){
+		return this.array[1]=val;
+	}
+	set c(val){
+		return this.array[1]=val;
+	}
+
+	// z
 	get b(){
 		return this.array[2]??0;
 	}
@@ -287,11 +309,28 @@ class Color extends Vector{
 		return this.array[2]??0;
 	}
 
+	set b(val){
+		return this.array[2]=val;
+	}
+	set v(val){
+		return this.array[2]=val;
+	}
+	set l(val){
+		return this.array[2]=val;
+	}
+
+	// w
 	get a(){
 		return this.array[3]??0;
 	}
+	set a(val){
+		return this.array[3]=val;
+	}
 }
 
+function Col(...data){
+	return new Color(...data);
+}
 function rgb(...rgba){
 	return new Color(...rgba);
 }

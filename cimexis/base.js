@@ -758,7 +758,7 @@ function attr(value){
  * @param {...any} keys The keys from the string template
  * @returns A function which when called will create a string containing the CSS styles 
  */
-function scss(strings,...keys){
+function scss(strings,...keys){ //TODO: make sure all css selectors work
 	// Create a single string from what was given with all of the values converted to strings.
 	let nestedStyles=strings[0]+keys.map((k,i)=>evaluate(k)+strings[i+1]).join("");
 	// The top level selector to use

@@ -11,6 +11,9 @@ function random(min,max){
 	let diff=max-min;
 	return min+Math.random()*diff;
 }
+function sigmoid(x){
+	return 1/(1+Math.pow(Math.E,-x));
+}
 
 let PI=Math.PI;
 let TAU=Math.PI*2;

@@ -100,7 +100,7 @@ class Vector{
 		return this.forAll(x=>Math.sign(x))
 	}
 	clamp(min=0,max=1){
-		return this.min(min).max(max);
+		return this.min(max).max(min);
 	}
 
 	/* VECTOR OPS */

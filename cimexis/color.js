@@ -20,7 +20,8 @@ class Color extends Vector{
 				this.fromHex(r);
 				this.space=COLOR.RGB;
 			}else if(r instanceof Color){
-				super(r.x,r.y,r.z,r.a,r.space);
+				super(r.x,r.y,r.z,r.a);
+				this.space=r.space;
 			}else{
 				super(...r);
 				this.pad([0,0,0,a]);
@@ -227,6 +228,7 @@ class Color extends Vector{
 		this.y=parseInt(result[2],16)/255;
 		this.z=parseInt(result[3],16)/255;
 		this.w=parseInt(result[4]??"FF",16)/255;
+		return this;
 	}
 	toHex(){
 		function limit(a){
@@ -248,12 +250,14 @@ class Color extends Vector{
 		this.x=Math.pow(this.x,gammaExp);
 		this.y=Math.pow(this.y,gammaExp);
 		this.z=Math.pow(this.z,gammaExp);
+		return this;
 	}
 	gammaShift(){
 		let gammaExp=2.2;
 		this.x=Math.pow(this.x,gammaExp);
 		this.y=Math.pow(this.y,gammaExp);
 		this.z=Math.pow(this.z,gammaExp);
+		return this;
 	}
 	toString(){
 		return this.toHex();

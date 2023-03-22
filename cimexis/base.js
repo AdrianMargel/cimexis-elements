@@ -758,7 +758,7 @@ function attr(value){
  * @param {...any} keys The keys from the string template
  * @returns A function which when called will create a string containing the CSS styles 
  */
-function scss(strings,...keys){ //TODO: make sure all css selectors work
+function scss(strings,...keys){ //TODO: make sure all css selectors work such as ","
 	// Create a single string from what was given with all of the values converted to strings.
 	let nestedStyles=strings[0]+keys.map((k,i)=>evaluate(k)+strings[i+1]).join("");
 	// The top level selector to use
@@ -789,8 +789,15 @@ function scss(strings,...keys){ //TODO: make sure all css selectors work
 					run="";
 					// Parse the child
 					let child=parse(arr,children);
-					// Set the child's selector
-					child.selector=selector;
+					if(selector.includes("@media")){
+						// If the selector is a media query then store it for later
+						// In this case the child has no selector so set it to "&"
+						child.selector="&";
+						child.mediaQuery=selector;
+					}else{
+						// Set the child's selector
+						child.selector=selector;
+					}
 					// Add the child
 					children.push(child);
 				
@@ -824,22 +831,31 @@ function scss(strings,...keys){ //TODO: make sure all css selectors work
 		 * 
 		 * @param {object} branch The tree branch to parse
 		 * @param {string} selector The parent selector of this branch
+		 * @param {string} mediaQuery The mediaQuery for this branch
 		 * @returns The list of CSS strings for this branch
 		 */
-		function flatten(branch,selector=""){
+		function flatten(branch,selector="",mediaQuery=null){
 			// Get the selector for this element
 			selector=mergeSelectors(selector,branch.selector);
 
+			if(branch.mediaQuery!=null){
+				mediaQuery=branch.mediaQuery;
+			}
+
 			// Recursively flatten all children into an array of CSS strings
 			let textArr=branch.children.flatMap(
-				(c)=>flatten(c,selector)
+				(c)=>flatten(c,selector,mediaQuery)
 			);
 
 			// Trim the styles
 			let trimmedStyles=branch.styles.trim();
 			// If there are any styles then add a CSS selector with them
 			if(trimmedStyles!=""){
-				textArr.unshift(selector+"{"+branch.styles+"}");
+				if(mediaQuery!=null){
+					textArr.unshift(mediaQuery+"{"+selector+"{"+branch.styles+"}}");
+				}else{
+					textArr.unshift(selector+"{"+branch.styles+"}");
+				}
 			}
 
 			// Return the CSS text

@@ -185,7 +185,7 @@ class Color extends Vector{
 				this.z=v;
 				break;
 			}
-			case COLOR.HSV:
+			case COLOR.HSL:
 			{
 				var max=Math.max(r,g,b),
 					min=Math.min(r,g,b),

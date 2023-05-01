@@ -72,11 +72,14 @@ class Vector{
 		return this.runOp((a,b)=>a/b,val);
 	}
 
+	mod(val=1){
+		return this.runOp((a,b)=>((a%b)+b)%b,val);
+	}
 	mix(val,amount){
 		let keep=1-amount;
 		return this.runOp((a,b)=>a*keep+b*amount,val);
 	}
-
+	
 	min(val=0){
 		return this.runOp((a,b)=>Math.min(a,b),val);
 	}
@@ -276,26 +279,3 @@ function VecA(mag,...angs){
 		v.yz=new Vector(v.yz).rot(angs[2]);
 	return v;
 }
-
-// let test=Vec(1,2,3).add([1,2]);
-// console.log(...test.array);
-
-//gammaCorrect,gammaShift,cross,dot,color/hex
-// let t=new Date().getTime();
-// for(let i=0;i<1000000;i++){
-// 	// let test=Vec(5,5,5);
-// 	// let test=new Vector(5,5);
-
-// 	// let test1=[5,5,5];
-// 	// let test2=[5,5,5];
-// 	// let test3=test1.map((_,i)=>test1[i]+test2[i]);
-
-// 	let test1=new Vector(5,5);
-// 	// let test2=new Vector(test1);
-// 	// let test3=test1.mag(test2);
-
-// 	// let test1=new Vector2(5,5);
-// 	// let test2=new Vector2(5,5);
-// 	// test1.addVec(test2);
-// }
-// console.log(t-new Date().getTime());

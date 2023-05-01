@@ -17,6 +17,7 @@ function sigmoid(x){
 
 let PI=Math.PI;
 let TAU=Math.PI*2;
+let ISO_ANG=Math.atan(1/Math.sqrt(2));
 
 function nrmAngTAU(ang){
 	return mod(ang,TAU);
@@ -34,5 +35,5 @@ const max=Math.max;
 
 const ceil=Math.ceil;
 const flr=Math.floor;
-const abs=Math.ceil;
+const abs=Math.abs;
 const sign=Math.sign;

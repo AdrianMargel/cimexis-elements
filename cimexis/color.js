@@ -2,8 +2,7 @@ let COLOR={
 	RGB:"rgb",
 	REAL:"real",
 	HSV:"hsv",
-	HSL:"hsl",
-	HCL:"hcl"//TODO
+	HSL:"hsl"
 };
 
 class Color extends Vector{

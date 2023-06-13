@@ -37,3 +37,7 @@ const ceil=Math.ceil;
 const flr=Math.floor;
 const abs=Math.abs;
 const sign=Math.sign;
+
+const sin=Math.sin;
+const cos=Math.cos;
+const tan=Math.tan;

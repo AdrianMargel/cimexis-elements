@@ -89,7 +89,10 @@ class Vector{
 	pow(val){
 		return this.runOp((a,b)=>Math.pow(a,b),val);
 	}
-
+	
+	round(){
+		return this.forAll(x=>Math.round(x))
+	}
 	ceil(){
 		return this.forAll(x=>Math.ceil(x))
 	}

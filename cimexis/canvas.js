@@ -10,6 +10,7 @@ class CoordTransformer{
 }
 class Cam extends CoordTransformer{
 	constructor(pos,zoom){
+		super();
 		this.pos=new Vector(pos);//TODO: think about this
 		this.zoom=zoom;
 	}
@@ -55,10 +56,10 @@ class CanvasDisplay{
 		return this.transformer.transform(x,y);
 	}
 	scale(...vals){
-		if(vals.length==1&&typeof vec!="number"){
+		if(vals.length==1&&typeof vals[0]!="number"){
 			vals=[...vals[0]];
 		}
-		return vals.map(this.transformer.scale);
+		return vals.map(v=>this.transformer.scale(v));
 	}
 
 	setStroke(col){
@@ -123,8 +124,8 @@ class CanvasDisplay{
 	
 	// (x,y) (w,h)
 	rect(...args){
-		let [x,y]=this.transform(this.readArgVec(args));
-		let [w,h]=this.scale(this.readArgVec(args));
+		let [x,y]=this.transform(readArgVec(args));
+		let [w,h]=this.scale(readArgVec(args));
 		if(this.hasFill)
 			this.ctx.fillRect(x,y,w,h);
 		if(this.hasStroke)
@@ -132,8 +133,8 @@ class CanvasDisplay{
 	}
 	// (x,y) r
 	circle(...args){
-		let [x,y]=this.transform(this.readArgVec(args));
-		let r=this.scale(this.readArg(args));
+		let [x,y]=this.transform(readArgVec(args));
+		let r=this.scale(readArg(args));
 		this.start();
 		this.ctx.arc(x,y,r,0,TAU);
 		this.shape(true);

@@ -33,6 +33,7 @@ const sqrt=Math.sqrt;
 const min=Math.min;
 const max=Math.max;
 
+const round=Math.round;
 const ceil=Math.ceil;
 const flr=Math.floor;
 const abs=Math.abs;

@@ -8,6 +8,8 @@
 
 /*
 	TODO:
+		-consider removing subscriptions from dead items
+		-caching
 		-svg``
 		-txt``
 		-persistance>naivigation (browser back and forward)
@@ -23,16 +25,6 @@
 
 //#region proxy setup
 
-//TODO: consider using weakmaps to allow garbage collection
-/**
- * A wrapper for a callback function
- */
-class Subscription{
-	constructor(callback){
-		this.callback=callback;
-	}
-}
-
 /**
  * A handler class to use when creating a reactive proxy to bind data
  */
@@ -43,7 +35,7 @@ class ReactiveHandler{
 	 * @param {boolean} isRecursive If the data should be bound recursively. This mainly effects if new data added to the object will be bound.
 	 */
 	constructor(data,isRecursive){
-		this.subscriptions=[];
+		this.subscriptions=new WeakRefSet();
 		this.bound=data;
 		this.isBound=true;
 		this.isRecursive=isRecursive;
@@ -94,25 +86,16 @@ class ReactiveHandler{
 	 * @returns If the subscription could be added. False if the subscription already exists.
 	 */
 	sub(callback){
-		if(!this.subscriptions.some(s => s.callback===callback)){
-			let sub=new Subscription(callback);
-			this.subscriptions.push(sub);
-			return true;
-		}
-		return false;
+		return this.subscriptions.add(callback);
 	}
 	/**
 	 * Unsubscribes to this reactive proxy
 	 * 
-	 * @param {function} callback The callback function to remove 
+	 * @param {function} callback The callback function to remove
+	 * @returns If the subscription could be removed. False if the subscription doesn't exist.
 	 */
 	unSub(callback){
-		for(let i=0;i<this.subscriptions.length;i++){
-			if(this.subscriptions[i].callback===callback){
-				this.subscriptions.splice(i,1);
-				break;
-			}
-		}
+		return this.subscriptions.delete(callback);
 	}
 	/**
 	 * A function to run anytime the value updates that will ensure all subscriptions are notified of the change.
@@ -120,9 +103,7 @@ class ReactiveHandler{
 	 */
 	update(){
 		if(!this.isSuppressed){
-			for(let i=0;i<this.subscriptions.length;i++){
-				this.subscriptions[i].callback();
-			}
+			this.subscriptions.forEach(s=>s());
 		}else{
 			this.hasChanged=true;
 		}
@@ -274,6 +255,7 @@ function def(definition,...bindings){
 	// The binding should not be recursive
 	let bound=bind(null,false);
 	let update=()=>{bound.data=definition()};
+	bound.updateSub=update;// Create a reference to prevent garbage collection
 	link(update,...bindings)();
 	return bound;
 }
@@ -649,7 +631,8 @@ class Attribute{
 		this.value=value;
 		this.isAttribute=true;
 
-		link(()=>{this.update()},...bindings);
+		this.updateSub=()=>{this.update()};// Create a reference to prevent garbage collection
+		link(this.updateSub,...bindings);
 	}
 	/**
 	 * Attaches this attribute to a specific element so it can update automatically

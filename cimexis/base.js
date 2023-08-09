@@ -522,8 +522,8 @@ function html(strings,...keys){
 			// Create a copy of the html text to update with the new values
 			let replacedHtmlText=htmlText;
 			// Evaluate all the placeholder values
-			capsule.evalutionStack=[]; // Used to prevent garbage collection 
-			let placeholdersResults=placeholders.map(x=>evaluate(x,capsule.evalutionStack));
+			capsule.evalutionStack=[]; // Used to prevent garbage collection
+			let placeholdersResults=placeholders.map(x=>evaluate(x,bindings,capsule.evalutionStack));
 
 			/* STEP 2-A: Populate all dynamic string values and create placholder comments for all elements */
 
@@ -1022,10 +1022,11 @@ function restoreFocus(){
  * Values are evaluated recursively whenever is possible to do so.
  * 
  * @param {*} toEval The dynamic value to evaluate
+ * @param {any[]} [bindings] An array of bound variables to use for binding functions
  * @param {any[]} [stack] An array to add all evaluated values to, used to prevent garbage collection
  * @returns The value to add to the html
  */
- function evaluate(toEval,stack=null){
+ function evaluate(toEval,bindings=[],stack=null){
 	if(toEval==null){
 		// Display null and undefined as a blank string
 		return "";
@@ -1039,8 +1040,12 @@ function restoreFocus(){
 			// If it is a class then assume it is a custom element and get its custom element name
 			return customElementName(toEval);
 		}
+		if(isBinding(toEval)&&toEval.inheritBindings){
+			// If it is a binding function run it with the bindings
+			return evaluate(toEval(...bindings),bindings,stack);
+		}
 		// If it is a function then run it and evaluate the result
-		return evaluate(toEval(),stack);
+		return evaluate(toEval(),bindings,stack);
 	}
 	if(type=="object"){
 		if(stack!=null){
@@ -1055,7 +1060,7 @@ function restoreFocus(){
 			// If it is iterable then turn it into an array
 			let array=[...toEval];
 			// Evaluate each item in the array
-			array=array.map(x=>evaluate(x,stack));
+			array=array.map(x=>evaluate(x,bindings,stack));
 
 			if(array.some(n=>isElm(n))){
 				// If any item in the array is an element then return a capsule with all the values as child elements
@@ -1080,7 +1085,7 @@ function restoreFocus(){
 			// If the bound value is an object then .data will return undefined.
 			// This is acceptable since how objects should be displayed is ambiguous, only bound primitives should used.
 			// Technically we could check for undefined here and display it as json if it is an object.
-			return evaluate(toEval.data,stack);
+			return evaluate(toEval.data,bindings,stack);
 		}
 	}
 	// If the value is something else then just return it

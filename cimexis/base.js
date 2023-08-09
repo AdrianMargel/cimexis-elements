@@ -309,6 +309,35 @@ class Capsule extends HTMLElement{
 		this.endMarker=newComment();
 		this.endMarker.isMarker=false;// Only consider the first marker as a marker for this capsule's location
 		this.endMarker.capsule=this;
+
+		this.updateDef=null;
+	}
+	/**
+	 * Locks the capsule from updating
+	 */
+	lock(){
+		if(this.updateDef!=null){
+			this.updateDef.lock();
+		}
+	}
+	/**
+	 * Unlocks the capsule to allow it to update again
+	 * Will fire an update if any changes occured while it was locked
+	 * Note that if an update occurs the capsule may also be disolved as a consequence of the html`` update cycle
+	 */
+	unlock(){
+		if(this.updateDef!=null){
+			this.updateDef.unlock(true);
+		}
+	}
+	/**
+	 * Checks if the capsule is disolved
+	 * 
+	 * @returns If the capsule is disolved
+	 */
+	isDisolved(){
+		// If the capsule contains the start marker then it is not disolved
+		return !this.contains(this.startMarker);
 	}
 	/**
 	 * Absorbs all of the child elements it had previously released back into itself.
@@ -316,8 +345,8 @@ class Capsule extends HTMLElement{
 	 * This is used to reset the capsule before updating it.
 	 */
 	absorb(){
-		if(this.contains(this.startMarker)){
-			// If the capsule already contains the start marker then it is already absorbed
+		if(!this.isDisolved()){
+			// Check if the capsule is already absorbed
 			// This can happen if the capsule has been disconnected from the DOM since if it has no parent then it can't disolve
 			// In this case just return
 			return;
@@ -360,7 +389,7 @@ class Capsule extends HTMLElement{
 					// Start at the first child
 					let tarChild=target.childNodes[0];
 					while(tarChild!=null){
-						// Try to absorb the child into a pill
+						// Try to absorb the child into a capsule
 						tarChild=tryAbsorb(tarChild);
 						// Get the next child and repeat until there are none left
 						tarChild=tarChild.nextSibling;
@@ -369,6 +398,7 @@ class Capsule extends HTMLElement{
 				return target;
 			}
 		}
+		this.lock();
 	}
 	/**
 	 * Fills the capsule with HTML
@@ -390,8 +420,20 @@ class Capsule extends HTMLElement{
 			// The capsule can't be disolved unless it is inside of another element
 			return;
 		}
-		// Disolve the capsule and all capsules inside it
-		tryDisolve(this);
+
+		// Unlock the capsule, allowing it to update if any changes occured while it was locked
+		// Note that this may cause the capsule to disolve if it updates
+		this.unlock();
+		if(this.isDisolved()){
+			// Check if the capsule is already disolved
+			// This can happen if the capsule updates after being unlocked
+			// In this case just return
+			return;
+		}
+
+		let children=[...this.childNodes];
+		replaceElm(this,this.childNodes);
+		children.forEach(tryDisolve);
 		
 		/**
 		 * Disolves all capsules within an element
@@ -399,14 +441,13 @@ class Capsule extends HTMLElement{
 		 * @param {HTMLElement} target The element to search
 		 */
 		function tryDisolve(target){
-			// Get the current children before the capsule disolves
-			let children=[...target.childNodes];
-			// If the element is a capsule then disolve it
 			if(isCapsule(target)){
-				replaceElm(target,target.childNodes);
+				// If the element is a capsule then disolve it
+				target.disolve();
+			}else{
+				// Try to disolve each child recursively
+				[...target.childNodes].forEach(tryDisolve);
 			}
-			// Try to disolve each child recursively
-			children.forEach(tryDisolve);
 		}
 	}
 }
@@ -595,7 +636,12 @@ function html(strings,...keys){
 		}
 		// Return the capsule as a reactive object that will update anytime one of the bindings changes
 		// This is done by creating a reactive definition based on the populate function.
-		return def(()=>populate(),...bindings);
+		let boundCapsule=def(()=>populate(),...bindings);
+		// Give the capsule aware of the binding responsible for updating it
+		boundCapsule.data.updateDef=boundCapsule;
+		// Default to a locked state, this will be changed when it is disolved into its parent
+		boundCapsule.lock();
+		return boundCapsule;
 	}
 	// Indicate that the the function is a binding function.
 	// This allows it to be detected and inherit bindings from its parent if it is used inside another html template

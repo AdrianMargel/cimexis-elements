@@ -37,23 +37,27 @@ class ElementExamples extends CustomElm{
 					${new ButtonClickable(item2BtnText,()=>{toggle.data=false},invToggle)}
 				</div>
 				<div class="item">
-				${html`${
-					()=>toggle.data?
-					html`
-						<p class="center">
-							Hello! I am ${item1Name}<br>
-							You can rename me though:
-						</p>
-						${new Input(item1Name)}
-					`(item1Name):
-					html`
-						<p class="center">
-							Hey there, I am ${item2Name}<br>
-							You can rename me though:
-						</p>
-						${new Input(item2Name)}
-					`(item2Name)
-				}`(toggle)}
+				${()=>{
+					let a,b;
+					
+					return html`${
+						()=>toggle.data?
+						a=a??html`
+							<p class="center">
+								Hello! I am ${item1Name}<br>
+								You can rename me though:
+							</p>
+							${new Input(item1Name)}
+						`(item1Name):
+						b=b??html`
+							<p class="center">
+								Hey there, I am ${item2Name}<br>
+								You can rename me though:
+							</p>
+							${new Input(item2Name)}
+						`(item2Name)
+					}`(toggle);
+				}}
 				</div>
 			</div>
 

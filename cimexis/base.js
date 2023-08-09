@@ -534,10 +534,7 @@ function html(strings,...keys){
 			 * @param {Record<string,HTMLElement>} comments A dictionary to add any found comments to
 			 * @returns The dictionary of found comments
 			 */
-			function getPlaceholderComments(elm,comments){
-				// If the comments dictionary was not provided then create a new one
-				comments=comments??{};
-
+			function getPlaceholderComments(elm,comments={}){
 				// Search all children
 				elm.childNodes.forEach(n=>{
 					if(n.nodeType==8){

@@ -8,8 +8,6 @@
 
 /*
 	TODO:
-		-consider removing subscriptions from dead items
-		-caching
 		-svg``
 		-txt``
 		-persistance>naivigation (browser back and forward)

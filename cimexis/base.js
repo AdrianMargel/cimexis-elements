@@ -522,7 +522,8 @@ function html(strings,...keys){
 			// Create a copy of the html text to update with the new values
 			let replacedHtmlText=htmlText;
 			// Evaluate all the placeholder values
-			let placeholdersResults=placeholders.map(evaluate);
+			capsule.evalutionStack=[]; // Used to prevent garbage collection 
+			let placeholdersResults=placeholders.map(x=>evaluate(x,capsule.evalutionStack));
 
 			/* STEP 2-A: Populate all dynamic string values and create placholder comments for all elements */
 
@@ -1021,23 +1022,30 @@ function restoreFocus(){
  * Values are evaluated recursively whenever is possible to do so.
  * 
  * @param {*} toEval The dynamic value to evaluate
+ * @param {any[]} [stack] An array to add all evaluated values to, used to prevent garbage collection
  * @returns The value to add to the html
  */
- function evaluate(toEval){
+ function evaluate(toEval,stack=null){
 	if(toEval==null){
 		// Display null and undefined as a blank string
 		return "";
 	}
 	let type=typeof toEval;
 	if(type=="function"){
+		if(stack!=null){
+			stack.push(toEval);
+		}
 		if(isClass(toEval)){
 			// If it is a class then assume it is a custom element and get its custom element name
 			return customElementName(toEval);
 		}
 		// If it is a function then run it and evaluate the result
-		return evaluate(toEval());
+		return evaluate(toEval(),stack);
 	}
 	if(type=="object"){
+		if(stack!=null){
+			stack.push(toEval);
+		}
 		if(isColor(toEval)){
 			return toEval.toString();
 		}else if(isIterable(toEval)){
@@ -1047,7 +1055,7 @@ function restoreFocus(){
 			// If it is iterable then turn it into an array
 			let array=[...toEval];
 			// Evaluate each item in the array
-			array=array.map(evaluate);
+			array=array.map(x=>evaluate(x,stack));
 
 			if(array.some(n=>isElm(n))){
 				// If any item in the array is an element then return a capsule with all the values as child elements
@@ -1072,7 +1080,7 @@ function restoreFocus(){
 			// If the bound value is an object then .data will return undefined.
 			// This is acceptable since how objects should be displayed is ambiguous, only bound primitives should used.
 			// Technically we could check for undefined here and display it as json if it is an object.
-			return evaluate(toEval.data);
+			return evaluate(toEval.data,stack);
 		}
 	}
 	// If the value is something else then just return it

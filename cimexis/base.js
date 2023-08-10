@@ -317,7 +317,7 @@ class Capsule extends HTMLElement{
 	 */
 	lock(){
 		if(this.updateDef!=null){
-			this.updateDef.lock();
+			// this.updateDef.lock();//TODO
 		}
 	}
 	/**
@@ -327,7 +327,7 @@ class Capsule extends HTMLElement{
 	 */
 	unlock(){
 		if(this.updateDef!=null){
-			this.updateDef.unlock(true);
+			// this.updateDef.unlock(true);//TODO
 		}
 	}
 	/**
@@ -565,8 +565,8 @@ function html(strings,...keys){
 
 			// Replace all placeholders with either the dynamic value or a placeholder comment
 			placeholdersResults.forEach((p,i)=>{
-				if(isElm(p)){
-					// If the placeholder value is an element then create a placeholder comment to mark its location
+				if(isElm(p)||Array.isArray(p)){
+					// If the placeholder value is an element or array then create a placeholder comment to mark its location
 					replacedHtmlText=replacedHtmlText.replace("$("+i+")","<!--$["+i+"]-->");
 				}else if(isAttr(p)){
 					// If the placeholder value is an attribute then keep the placeholder for now but wrap it in quotes so it can be set as the attribute
@@ -596,6 +596,10 @@ function html(strings,...keys){
 			placeholdersResults.forEach((p,i)=>{
 				if(isElm(p)){
 					// Replace the placeholder comment with the correct element
+					replaceElm(placeholderComments[i+""],p);
+				}else if(Array.isArray(p)){
+					// Replace the placeholder comment with the array of values/elements
+					p=p.map(x=>isElm(x)?x:newText(x));// Convert strings to text nodes
 					replaceElm(placeholderComments[i+""],p);
 				}else if(isAttr(p)){
 					// If the placeholder value is an attribute then locate the attribute and replace it
@@ -1059,7 +1063,7 @@ function restoreFocus(){
 
 /**
  * Evaluates a dynamic value.
- * This will attempt to resolve the value to a string, attribute, element, or capsule that can be added to the html.
+ * This will attempt to resolve the value to a string, attribute, element, or array that can be added to the html.
  * Values are evaluated recursively whenever is possible to do so.
  * 
  * @param {*} toEval The dynamic value to evaluate
@@ -1104,19 +1108,9 @@ function restoreFocus(){
 			array=array.map(x=>evaluate(x,bindings,stack));
 
 			if(array.some(n=>isElm(n))){
-				// If any item in the array is an element then return a capsule with all the values as child elements
+				// If any item in the array is an element then return an array with all the values
 				// This has to be done since if one of the items is an element it can't be turned into a string
-				let childCapsule=newCapsule();
-				array.forEach(n=>{
-					if(isElm(n)){
-						addElm(n,childCapsule);
-					}else{
-						// If the item isn't an element then take its value and turn it into a text node
-						// This way it can be added to the capsule like any other element
-						addElm(newText(n+""),childCapsule);
-					}
-				});
-				return childCapsule;
+				return array;
 			}else{
 				// If all items in the array can be expressed as strings then join them together into a single string and return it.
 				return array.join("");

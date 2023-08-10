@@ -870,28 +870,30 @@ function scss(strings,...keys){
 		 * 
 		 * @param {object} branch The tree branch to parse
 		 * @param {string} selector The parent selector of this branch
-		 * @param {string} mediaQuery The mediaQuery for this branch
+		 * @param {string[]} mediaQueries The mediaQueries for this branch
 		 * @returns The list of CSS strings for this branch
 		 */
-		function flatten(branch,selector="",mediaQuery=null){
+		function flatten(branch,selector="",mediaQueries=[]){
 			// Get the selector for this element
 			selector=mergeSelectors(selector,branch.selector);
 
 			if(branch.mediaQuery!=null){
-				mediaQuery=branch.mediaQuery;
+				mediaQueries.push(branch.mediaQuery);
 			}
 
 			// Recursively flatten all children into an array of CSS strings
 			let textArr=branch.children.flatMap(
-				(c)=>flatten(c,selector,mediaQuery)
+				(c)=>flatten(c,selector,[...mediaQueries])
 			);
 
 			// Trim the styles
 			let trimmedStyles=branch.styles.trim();
 			// If there are any styles then add a CSS selector with them
 			if(trimmedStyles!=""){
-				if(mediaQuery!=null){
-					textArr.unshift(mediaQuery+"{"+selector+"{"+branch.styles+"}}");
+				if(mediaQueries.length>0){
+					let mediaStart=mediaQueries.join("{");
+					let mediaEnd=Array(mediaQueries.length).join("}")
+					textArr.unshift(mediaStart+"{"+selector+"{"+branch.styles+"}}"+mediaEnd);
 				}else{
 					textArr.unshift(selector+"{"+branch.styles+"}");
 				}

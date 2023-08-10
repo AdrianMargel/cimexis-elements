@@ -663,22 +663,29 @@ class Attribute{
 		this.attrName=null;
 		this.value=value;
 		this.isAttribute=true;
-
-		this.updateSub=()=>{this.update()};// Create a reference to prevent garbage collection
-		link(this.updateSub,...bindings);
+		
+		// Setup bindings to update the attribute
+		// An update number is used instead of a direct linkage to allow updates to be locked
+		this.updateNum=def((val)=>(val.data??0)+1,...bindings);
+		this.updateNum.lock();// Default to a locked state, this will be changed when the capsule is disolved into its parent
+		this.updateFunc=link(()=>this.update(),this.updateNum);
 	}
 	/**
 	 * Locks the attribute from updating
 	 */
 	lock(){
-		//TODO
+		if(this.updateNum!=null&&!this.updateNum.isLocked()){
+			this.updateNum.lock();
+		}
 	}
 	/**
 	 * Unlocks the attribute to allow it to update again
 	 * Will fire an update if any changes occured while it was locked
 	 */
 	unlock(){
-		//TODO
+		if(this.updateNum!=null&&this.updateNum.isLocked()){
+			this.updateNum.unlock();
+		}
 	}
 	/**
 	 * Attaches this attribute to a specific element so it can update automatically

@@ -584,7 +584,7 @@ function html(strings,...keys){
 					// Replace the placeholder comment with the array of values/elements
 					p=p.map(x=>{
 						if(isElm(x)){
-							if(isCapsule(p)){
+							if(isCapsule(x)){
 								capsule.addedCapsules.push(x);
 							}
 							return x;

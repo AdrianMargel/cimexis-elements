@@ -299,7 +299,7 @@ class Capsule extends HTMLElement{
 	/**
 	 * A basic constructor
 	 */
-	constructor(){
+	constructor(populateFunc,...bindings){
 		super();
 		this.isCapsule=true;
 
@@ -311,7 +311,12 @@ class Capsule extends HTMLElement{
 		this.endMarker.isMarker=false;// Only consider the first marker as a marker for this capsule's location
 		this.endMarker.capsule=this;
 
-		this.updateDef=null;
+		// Setup bindings to update the capsule
+		// An update number is used instead of a direct linkage to allow updates to be locked
+		this.updateNum=def((val)=>(val.data??0)+1,...bindings);
+		this.updateNum.lock();// Default to a locked state, this will be changed when the capsule is disolved into its parent
+		this.updateFunc=link(()=>populateFunc(),this.updateNum);
+
 		this.addedCapsules=[];
 		this.addedAttributes=[];
 	}
@@ -319,8 +324,8 @@ class Capsule extends HTMLElement{
 	 * Locks the capsule from updating
 	 */
 	lock(){
-		if(this.updateDef!=null&&!this.updateDef.isLocked()){
-			this.updateDef.lock();
+		if(this.updateNum!=null&&!this.updateNum.isLocked()){
+			this.updateNum.lock();
 			// Only need to handle locking for attributes, capsules are self locking/unlocking
 			this.addedAttributes.forEach(x=>x.lock());
 		}
@@ -331,8 +336,8 @@ class Capsule extends HTMLElement{
 	 * Note that if an update occurs the capsule may also be disolved as a consequence of the html`` update cycle
 	 */
 	unlock(){
-		if(this.updateDef!=null&&this.updateDef.isLocked()){
-			this.updateDef.unlock(true);
+		if(this.updateNum!=null&&this.updateNum.isLocked()){
+			this.updateNum.unlock(true);
 			// Only need to handle locking for attributes, capsules are self locking/unlocking
 			this.addedAttributes.forEach(x=>x.unlock());
 		}
@@ -484,7 +489,12 @@ function html(strings,...keys){
 		/* STEP 2: Create a capsule that can be updated dynamically with the populate function */
 
 		// Create an empty capsule
-		let capsule=newCapsule();
+		let updateFunc=()=>populate();
+		let capsule=new Capsule(updateFunc,...bindings);
+		
+		// Populate and return the capsule
+		updateFunc();
+		return capsule;
 
 		/**
 		 * Populates the capsule with the dynamic values
@@ -620,19 +630,6 @@ function html(strings,...keys){
 			// Return the capsule
 			return capsule;
 		}
-		
-		// Setup bindings to update the capsule
-		// An update number is used instead of a direct linkage to allow updates to be locked
-		let updateNum=def((val)=>(val.data??0)+1,...bindings);
-		updateNum.lock();// Default to a locked state, this will be changed when the capsule is disolved into its parent
-		let updateFunc=link(()=>populate(),updateNum);
-		// Tie the bindings to the capsule 
-		capsule.updateDef=updateNum;
-		capsule.updateFunc=updateFunc;
-		
-		// Populate and return the capsule
-		updateFunc();
-		return capsule;
 	}
 	// Indicate that the the function is a binding function.
 	// This allows it to be detected and inherit bindings from its parent if it is used inside another html template
@@ -1301,14 +1298,6 @@ function encodeHTML(rawStr){
 	});
 }
 
-/**
- * Creates a new Capsule.
- * 
- * @returns The new capsule
- */
-function newCapsule(){
-	return new Capsule();
-}
 /**
  * Creates a new element
  * 

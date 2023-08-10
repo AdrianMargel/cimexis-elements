@@ -192,6 +192,7 @@ function bindProxy(data,handler){
 	data.unSub=(sub)=>{handler.unSub(sub)};
 	data.lock=()=>{handler.lock()};
 	data.unlock=(allowUpdate)=>{handler.unlock(allowUpdate)};
+	data.isLocked=()=>handler.isSuppressed;
 	data.update=()=>{handler.update()};
 
 	return new Proxy(data, handler);
@@ -311,13 +312,17 @@ class Capsule extends HTMLElement{
 		this.endMarker.capsule=this;
 
 		this.updateDef=null;
+		this.addedCapsules=[];
+		this.addedAttributes=[];
 	}
 	/**
 	 * Locks the capsule from updating
 	 */
 	lock(){
-		if(this.updateDef!=null){
+		if(this.updateDef!=null&&!this.updateDef.isLocked()){
 			this.updateDef.lock();
+			// Only need to handle locking for attributes, capsules are self locking/unlocking
+			this.addedAttributes.forEach(x=>x.lock());
 		}
 	}
 	/**
@@ -326,8 +331,10 @@ class Capsule extends HTMLElement{
 	 * Note that if an update occurs the capsule may also be disolved as a consequence of the html`` update cycle
 	 */
 	unlock(){
-		if(this.updateDef!=null){
+		if(this.updateDef!=null&&this.updateDef.isLocked()){
 			this.updateDef.unlock(true);
+			// Only need to handle locking for attributes, capsules are self locking/unlocking
+			this.addedAttributes.forEach(x=>x.unlock());
 		}
 	}
 	/**
@@ -431,24 +438,11 @@ class Capsule extends HTMLElement{
 			return;
 		}
 
-		let children=[...this.childNodes];
+		// Release the content of the capsule by replacing it with its children
 		replaceElm(this,this.childNodes);
-		children.forEach(tryDisolve);
-		
-		/**
-		 * Disolves all capsules within an element
-		 * 
-		 * @param {HTMLElement} target The element to search
-		 */
-		function tryDisolve(target){
-			if(isCapsule(target)){
-				// If the element is a capsule then disolve it
-				target.disolve();
-			}else{
-				// Try to disolve each child recursively
-				[...target.childNodes].forEach(tryDisolve);
-			}
-		}
+
+		// Disolve all capsules within this capsule
+		this.addedCapsules.forEach(x=>x.disolve());
 	}
 }
 defineElm(Capsule);
@@ -558,8 +552,8 @@ function html(strings,...keys){
 			// Create a copy of the html text to update with the new values
 			let replacedHtmlText=htmlText;
 			// Evaluate all the placeholder values
-			capsule.evalutionStack=[]; // Used to prevent garbage collection
-			let placeholdersResults=placeholders.map(x=>evaluate(x,bindings,capsule.evalutionStack));
+			capsule.evalStack=[];// Used to prevent garbage collection
+			let placeholdersResults=placeholders.map(x=>evaluate(x,bindings,capsule.evalStack));
 
 			/* STEP 2-A: Populate all dynamic string values and create placholder comments for all elements */
 
@@ -590,19 +584,37 @@ function html(strings,...keys){
 			
 			/* STEP 2-B: Populate elements */
 
+			// Keep track of added capsules and attributes
+			capsule.addedCapsules=[];
+			capsule.addedAttributes=[];
+
 			// Find all placeholder comments
 			let placeholderComments=getPlaceholderComments(capsule);
-			// Add all placeholder values that are elements
+			// Add all complex placeholder values
 			placeholdersResults.forEach((p,i)=>{
 				if(isElm(p)){
+					if(isCapsule(p)){
+						capsule.addedCapsules.push(p);
+					}
 					// Replace the placeholder comment with the correct element
 					replaceElm(placeholderComments[i+""],p);
 				}else if(Array.isArray(p)){
 					// Replace the placeholder comment with the array of values/elements
-					//TODO: the text should be parse as html instead of a textnode
-					p=p.map(x=>isElm(x)?x:newText(x));// Convert strings to text nodes
+					p=p.map(x=>{
+						if(isElm(x)){
+							if(isCapsule(p)){
+								capsule.addedCapsules.push(x);
+							}
+							return x;
+						}else{
+							// Convert strings to text nodes
+							//TODO: the text should be parse as html instead of a textnode
+							return newText(x) 
+						}
+					});
 					replaceElm(placeholderComments[i+""],p);
 				}else if(isAttr(p)){
+					capsule.addedAttributes.push(p);
 					// If the placeholder value is an attribute then locate the attribute and replace it
 
 					// Create variables to represent the placeholder values that need to be searched for
@@ -685,6 +697,19 @@ class Attribute{
 
 		this.updateSub=()=>{this.update()};// Create a reference to prevent garbage collection
 		link(this.updateSub,...bindings);
+	}
+	/**
+	 * Locks the attribute from updating
+	 */
+	lock(){
+		//TODO
+	}
+	/**
+	 * Unlocks the attribute to allow it to update again
+	 * Will fire an update if any changes occured while it was locked
+	 */
+	unlock(){
+		//TODO
 	}
 	/**
 	 * Attaches this attribute to a specific element so it can update automatically

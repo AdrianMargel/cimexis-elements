@@ -785,7 +785,7 @@ function attr(value){
  * @param {...any} keys The keys from the string template
  * @returns A function which when called will create a string containing the CSS styles 
  */
-function scss(strings,...keys){ //TODO: make sure all css selectors work such as ","
+function scss(strings,...keys){
 	// Create a single string from what was given with all of the values converted to strings.
 	let nestedStyles=strings[0]+keys.map((k,i)=>evaluate(k)+strings[i+1]).join("");
 	// The top level selector to use
@@ -821,12 +821,24 @@ function scss(strings,...keys){ //TODO: make sure all css selectors work such as
 						// In this case the child has no selector so set it to "&"
 						child.selector="&";
 						child.mediaQuery=selector;
+						// Add the child
+						children.push(child);
 					}else{
 						// Set the child's selector
-						child.selector=selector;
+						if(selector.includes(",")){
+							let selectors=selector.split(",");
+							selectors.forEach(s=>{
+								let copy=structuredClone(child);
+								copy.selector=s;
+								// Add the child
+								children.push(copy);
+							})
+						}else{
+							child.selector=selector;
+							// Add the child
+							children.push(child);
+						}
 					}
-					// Add the child
-					children.push(child);
 				
 				// If the char is "}" then stop parsing and exit 
 				}else if(char=="}"){

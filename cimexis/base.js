@@ -587,9 +587,8 @@ function html(strings,...keys){
 							}
 							return x;
 						}else{
-							// Convert strings to text nodes
-							//TODO: the text should be parse as html instead of a textnode
-							return newText(x) 
+							// Convert strings to html
+							return parseHTML(x);
 						}
 					});
 					replaceElm(placeholderComments[i+""],p);
@@ -1317,6 +1316,17 @@ function newElm(tag,classes){
 		}
 	}
 	return elm;
+}
+/**
+ * Parses a string into html
+ * 
+ * @param {string} html The html string
+ * @returns A list of the html created
+ */
+function parseHTML(html){
+	let parent=document.createElement("div");
+	parent.innerHTML=html;
+	return [...parent.childNodes];
 }
 /**
  * Creates a new text node

@@ -12,7 +12,6 @@
 		-txt``
 		-persistance>naivigation (browser back and forward)
 		-documentation types/return types
-		-use types to determine isCapsule() and other similar functions
 */
 
 
@@ -293,7 +292,6 @@ class Capsule extends HTMLElement{
 	 */
 	constructor(populateFunc,...bindings){
 		super();
-		this.isCapsule=true;
 
 		this.startMarker=newComment();
 		this.startMarker.isMarker=true;
@@ -657,7 +655,6 @@ class Attribute{
 		this.element=null;
 		this.attrName=null;
 		this.value=value;
-		this.isAttribute=true;
 		
 		// Setup bindings to update the attribute
 		// An update number is used instead of a direct linkage to allow updates to be locked
@@ -735,7 +732,6 @@ class AttributeAction{
 	 */
 	constructor(value){
 		this.value=value;
-		this.isAction=true;
 	}
 	/**
 	 * Gets the value of this action
@@ -1568,7 +1564,7 @@ function isClass(toTest) {
  * @returns If the value is a an attribute
  */
 function isAttr(toTest){
-	return toTest.isAttribute;
+	return toTest instanceof Attribute;
 }
 /**
  * Check if a value is an action
@@ -1577,7 +1573,7 @@ function isAttr(toTest){
  * @returns If the value is a an action
  */
 function isAction(toTest){
-	return toTest.isAction;
+	return toTest instanceof AttributeAction;
 }
 /**
  * Checks if a value is an html element
@@ -1595,7 +1591,7 @@ function isAction(toTest){
  * @returns If the element is a capsule
  */
 function isCapsule(toTest){
-	return toTest.isCapsule;
+	return toTest instanceof Capsule;
 }
 /**
  * Checks if an element is a marker for a capsule

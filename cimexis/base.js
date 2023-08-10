@@ -12,6 +12,7 @@
 		-txt``
 		-persistance>naivigation (browser back and forward)
 		-documentation types/return types
+		-use types to determine isCapsule() and other similar functions
 */
 
 
@@ -280,15 +281,6 @@ function link(toRun,...bindings){
 	█▀▄ ██▄ █▀█ █▄▄  █  █ ▀▄▀ ██▄   █▀█  █  █ ▀ █ █▄▄
 */
 
-/*
-TODO: Finding capsules to disolve and absorb them is very inefficient right now. There is probably a better solution. (Such as using query selectors)
-
-Update: I looked into this, even completely disabling absorb() and disolve() doesn't have a significant impact on preformance
-It looks like most of the time goes to parsing and rendering html which is unrelated to this.
-I figured recursively iterating through every DOM element to find the capsules would present a preformance issue
-but apparently traversing and moving around elements in the DOM is pretty cheap compared to rendering them which we can't get around anyways.
-*/
-
 /**
  * A placeholder element that acts as a temporary capsule allowing the construction and manipulation of a local DOM tree.
  * When the local DOM tree is complete the capsule can be disolved releasing all of its child elements its parent.
@@ -424,10 +416,6 @@ class Capsule extends HTMLElement{
 }
 defineElm(Capsule);
 
-// TODO: add text`` function
-
-// TODO: add svg function
-
 // TODO: clean strings before inserting them, strings cannot contain $(#) or $[#]
 /**
  * Used to create reactive HTML
@@ -511,6 +499,7 @@ function html(strings,...keys){
 			 * @returns The dictionary of found comments
 			 */
 			function getPlaceholderComments(elm,comments={}){
+				//TODO: there might be a more efficient way to do this
 				// Search all children
 				elm.childNodes.forEach(n=>{
 					if(n.nodeType==8){
@@ -645,8 +634,6 @@ function html(strings,...keys){
 	█▀█ █▀▀ ▄▀█ █▀▀ ▀█▀ █ █ █ █▀▀   ▄▀█ ▀█▀ ▀█▀ █▀█ █ █▄▄ █ █ ▀█▀ █▀▀ █▀
 	█▀▄ ██▄ █▀█ █▄▄  █  █ ▀▄▀ ██▄   █▀█  █   █  █▀▄ █ █▄█ █▄█  █  ██▄ ▄█
 */
-
-//TODO: garbage collection?
 
 /**
  * A reactive HTML element attribute

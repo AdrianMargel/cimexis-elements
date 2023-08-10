@@ -599,6 +599,7 @@ function html(strings,...keys){
 					replaceElm(placeholderComments[i+""],p);
 				}else if(Array.isArray(p)){
 					// Replace the placeholder comment with the array of values/elements
+					//TODO: the text should be parse as html instead of a textnode
 					p=p.map(x=>isElm(x)?x:newText(x));// Convert strings to text nodes
 					replaceElm(placeholderComments[i+""],p);
 				}else if(isAttr(p)){

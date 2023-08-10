@@ -358,53 +358,25 @@ class Capsule extends HTMLElement{
 			// In this case just return
 			return;
 		}
+		// Absorb all capsules within this capsule
+		this.addedCapsules.forEach(x=>x.absorb());
+
 		// Move the capsule to its marker
 		replaceElm(this.startMarker,this,true);
 		
 		let toAbsorb=[];
 		let child=this.startMarker;
 		// Iterate through each child and add it to the list of elements that should be absorbed back into the capsule
-		// Try to cause each child to also absorb itself of any capsules inside
 		// When the end marker is hit then the scan is complete
 		while(child!==this.endMarker&&child!=null){
 			toAbsorb.push(child);
-			child=tryAbsorb(child.nextSibling);
+			child=child.nextSibling;
 		}
 		toAbsorb.push(this.endMarker);
-
 		// Add all child elements back inside the capsule
 		addElm(toAbsorb,this);
-
-		/**
-		 * Try to absorb an element and all of the capsules inside it
-		 * 
-		 * @param {HTMLElement} target The element to absorb
-		 * @returns The target element of the capsule it was absorbed into if it was a marker
-		 */
-		function tryAbsorb(target){
-			if(target==null){
-				return null;
-			}
-			if(isMarker(target)){
-				// If it is a marker then absorb the parent capsule
-				target.capsule.absorb();
-				// Return the capsule since that is what has replaced the marker's location
-				return target.capsule;
-			}else{
-				// If the target is an element then loop through all the children recursively looking for markers and trying to absorb them.
-				if(target.childNodes.length>0){
-					// Start at the first child
-					let tarChild=target.childNodes[0];
-					while(tarChild!=null){
-						// Try to absorb the child into a capsule
-						tarChild=tryAbsorb(tarChild);
-						// Get the next child and repeat until there are none left
-						tarChild=tarChild.nextSibling;
-					}
-				}
-				return target;
-			}
-		}
+		
+		// Lock the capsule from updating until it is disolved
 		this.lock();
 	}
 	/**

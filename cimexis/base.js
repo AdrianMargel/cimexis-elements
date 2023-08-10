@@ -416,7 +416,6 @@ class Capsule extends HTMLElement{
 }
 defineElm(Capsule);
 
-// TODO: clean strings before inserting them, strings cannot contain $(#) or $[#]
 /**
  * Used to create reactive HTML
  * 
@@ -443,7 +442,17 @@ function html(strings,...keys){
 		 */
 		function placehold(key){
 			placeholders.push(key);
-			return "$("+(placeholders.length-1)+")"
+			return "¡("+(placeholders.length-1)+")"
+		}
+		/**
+		 * HTML encodes all "¡" characters
+		 * The "¡" character is used as a marker for string replacements
+		 * 
+		 * @param {string} str The string to clean 
+		 * @returns The cleaned string
+		 */
+		function cleanString(str){
+			return str.replaceAll("¡","&iexcl;");
 		}
 		/**
 		 * Converts static values to strings
@@ -469,10 +478,10 @@ function html(strings,...keys){
 				}
 				return placehold(key);
 			}
-			return key;
+			return cleanString(key+"");
 		}
 		// Create the static HTML for this template populating all static values
-		let htmlText=strings[0]+keys.map((k,i)=>convert(k)+strings[i+1]).join("");
+		let htmlText=cleanString(strings[0])+keys.map((k,i)=>convert(k)+cleanString(strings[i+1])).join("");
 
 		/* STEP 2: Create a capsule that can be updated dynamically with the populate function */
 
@@ -492,7 +501,7 @@ function html(strings,...keys){
 		function populate(){
 			/**
 			 * Recursively finds all placeholder comments inside an element
-			 * A placeholder comment is an comment containing text in the format of $[number]
+			 * A placeholder comment is an comment containing text in the format of ¡[number]
 			 * 
 			 * @param {HTMLElement} elm The element to search
 			 * @param {Record<string,HTMLElement>} comments A dictionary to add any found comments to
@@ -504,7 +513,7 @@ function html(strings,...keys){
 				elm.childNodes.forEach(n=>{
 					if(n.nodeType==8){
 						// If the child is a comment then check that the text is in the correct format $[number]
-						let found=/\$\[([0-9]+)\]/.exec(n.data);
+						let found=/¡\[([0-9]+)\]/.exec(n.data);
 						if(found!=null){
 							// If it is in the correct format then add it to the dictionary 
 							comments[found[1]]=n;
@@ -532,14 +541,14 @@ function html(strings,...keys){
 			placeholdersResults.forEach((p,i)=>{
 				if(isElm(p)||Array.isArray(p)){
 					// If the placeholder value is an element or array then create a placeholder comment to mark its location
-					replacedHtmlText=replacedHtmlText.replace("$("+i+")","<!--$["+i+"]-->");
+					replacedHtmlText=replacedHtmlText.replace("¡("+i+")","<!--¡["+i+"]-->");
 				}else if(isAttr(p)){
 					// If the placeholder value is an attribute then keep the placeholder for now but wrap it in quotes so it can be set as the attribute
 					// Add an "attribute-#" to be able to search for the element later
-					replacedHtmlText=replacedHtmlText.replace(`$(${i})`,`"$(${i})" attribute-${i}="true" `);
+					replacedHtmlText=replacedHtmlText.replace(`¡(${i})`,`"¡(${i})" attribute-${i}="true" `);
 				}else{
 					// Otherwise use the placeholder value as a string and replace its placeholder in the HTML
-					replacedHtmlText=replacedHtmlText.replace("$("+i+")",p);
+					replacedHtmlText=replacedHtmlText.replace("¡("+i+")",cleanString(p+""));
 				}
 			});
 
@@ -589,7 +598,7 @@ function html(strings,...keys){
 					// If the placeholder value is an attribute then locate the attribute and replace it
 
 					// Create variables to represent the placeholder values that need to be searched for
-					let placeholderVal=`$(${i})`;
+					let placeholderVal=`¡(${i})`;
 					let placeholderAttr=`attribute-${i}`;
 
 					// Locate the element with the attribute
@@ -757,7 +766,7 @@ function attr(value){
 	let bindFunc=(...bindings)=>new Attribute(value,...bindings);
 	// Making this a binding function means that it can inherit bindings from the html`` it is inside of
 	// Or at least it could, but when the html`` updates all attributes are forced to update as well
-	// So to avoid redundancy updates this won't inherit the bindings from its parent
+	// So to avoid redundant updates this won't inherit the bindings from its parent
 	// But I'm still marking this as a binding function since that's what it is
 	markBinding(bindFunc,false);
 	return bindFunc;

@@ -252,7 +252,7 @@ function bindProxy(data,handler){
 function def(definition,...bindings){
 	// The binding should not be recursive
 	let bound=bind(null,false);
-	let update=()=>{bound.data=definition()};
+	let update=()=>{bound.data=definition(bound)};
 	bound.updateSub=update;// Create a reference to prevent garbage collection
 	link(update,...bindings)();
 	return bound;
@@ -317,7 +317,7 @@ class Capsule extends HTMLElement{
 	 */
 	lock(){
 		if(this.updateDef!=null){
-			// this.updateDef.lock();//TODO
+			this.updateDef.lock();
 		}
 	}
 	/**
@@ -327,7 +327,7 @@ class Capsule extends HTMLElement{
 	 */
 	unlock(){
 		if(this.updateDef!=null){
-			// this.updateDef.unlock(true);//TODO
+			this.updateDef.unlock(true);
 		}
 	}
 	/**
@@ -463,7 +463,7 @@ defineElm(Capsule);
  * 
  * @param {string[]} strings The strings from the string template
  * @param {...any} keys The keys from the string template
- * @returns A function which when called will produce a bound reactive Capsule element
+ * @returns A function which when called will produce a Capsule element
  */
 function html(strings,...keys){
 	// Create a function which will return the reactive HTML
@@ -636,14 +636,19 @@ function html(strings,...keys){
 			// Return the capsule
 			return capsule;
 		}
-		// Return the capsule as a reactive object that will update anytime one of the bindings changes
-		// This is done by creating a reactive definition based on the populate function.
-		let boundCapsule=def(()=>populate(),...bindings);
-		// Give the capsule aware of the binding responsible for updating it
-		boundCapsule.data.updateDef=boundCapsule;
-		// Default to a locked state, this will be changed when it is disolved into its parent
-		boundCapsule.lock();
-		return boundCapsule;
+		
+		// Setup bindings to update the capsule
+		// An update number is used instead of a direct linkage to allow updates to be locked
+		let updateNum=def((val)=>(val.data??0)+1,...bindings);
+		updateNum.lock();// Default to a locked state, this will be changed when the capsule is disolved into its parent
+		let updateFunc=link(()=>populate(),updateNum);
+		// Tie the bindings to the capsule 
+		capsule.updateDef=updateNum;
+		capsule.updateFunc=updateFunc;
+		
+		// Populate and return the capsule
+		updateFunc();
+		return capsule;
 	}
 	// Indicate that the the function is a binding function.
 	// This allows it to be detected and inherit bindings from its parent if it is used inside another html template
@@ -964,7 +969,7 @@ class CustomElm extends HTMLElement{
 	define(htmlDef){
 		// Get the capsule containing the html
 		this.htmlDef=(typeof htmlDef=="function")?htmlDef():htmlDef;
-		let capsule=this.htmlDef.data;
+		let capsule=this.htmlDef;
 		// Place the capsule inside this element and then disolve it to populate the content of this element
 		addElm(capsule,this);
 		capsule.disolve();

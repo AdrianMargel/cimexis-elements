@@ -288,7 +288,7 @@ let body=html`
 	${headerElm}
 	${navElm}
 	${pageElm}
-`().data;
+`();
 addElm(body,document.body);
 body.disolve();
 

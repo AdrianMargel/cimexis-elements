@@ -56,6 +56,9 @@ class Vector{
 		}
 		return this;
 	}
+	toString(){
+		return this.array.join(" ");
+	}
 
 	/* MATH OPS */
 	

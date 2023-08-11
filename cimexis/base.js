@@ -8,7 +8,6 @@
 
 /*
 	TODO:
-		-svg``
 		-txt``
 		-persistance>naivigation (browser back and forward)
 		-documentation types/return types
@@ -289,6 +288,9 @@ function link(toRun,...bindings){
 class Capsule extends HTMLElement{
 	/**
 	 * A basic constructor
+	 * 
+	 * @param {function} populateFunc A function used to populate the capsule
+	 * @param  {...any} bindings The bindings that determine when the capsule should update
 	 */
 	constructor(populateFunc,...bindings){
 		super();
@@ -309,6 +311,8 @@ class Capsule extends HTMLElement{
 
 		this.addedCapsules=[];
 		this.addedAttributes=[];
+		
+		this.populateElement=this;
 	}
 	/**
 	 * Locks the capsule from updating
@@ -339,7 +343,7 @@ class Capsule extends HTMLElement{
 	 */
 	isDisolved(){
 		// If the capsule contains the start marker then it is not disolved
-		return !this.contains(this.startMarker);
+		return !this.populateElement.contains(this.startMarker);
 	}
 	/**
 	 * Absorbs all of the child elements it had previously released back into itself.
@@ -369,7 +373,7 @@ class Capsule extends HTMLElement{
 		}
 		toAbsorb.push(this.endMarker);
 		// Add all child elements back inside the capsule
-		addElm(toAbsorb,this);
+		addElm(toAbsorb,this.populateElement);
 		
 		// Lock the capsule from updating until it is disolved
 		this.lock();
@@ -380,10 +384,10 @@ class Capsule extends HTMLElement{
 	 * @param {string} htmlText The HTML to set for this capsule
 	 */
 	fill(htmlText){
-		this.innerHTML=htmlText;
+		this.populateElement.innerHTML=htmlText;
 		// Add the markers to the start and end
-		addElmAt(this.startMarker,0,this);
-		addElm(this.endMarker,this);
+		addElmAt(this.startMarker,0,this.populateElement);
+		addElm(this.endMarker,this.populateElement);
 	}
 	/**
 	 * Disolve the capsule releasing its children into its parent.
@@ -406,13 +410,31 @@ class Capsule extends HTMLElement{
 		}
 
 		// Release the content of the capsule by replacing it with its children
-		replaceElm(this,this.childNodes);
+		replaceElm(this,this.populateElement.childNodes);
 
 		// Disolve all capsules within this capsule
 		this.addedCapsules.forEach(x=>x.disolve());
 	}
 }
 defineElm(Capsule);
+
+/**
+ * A capsule for the SVG namespace to be used for generating SVG elements
+ */
+class CapsuleSvg extends Capsule{
+	/**
+	 * A basic constructor
+	 * 
+	 * @param {function} populateFunc A function used to populate the capsule
+	 * @param  {...any} bindings The bindings that determine when the capsule should update
+	 */
+	constructor(populateFunc,...bindings){
+		super(populateFunc,...bindings);
+		this.populateElement=document.createElementNS('http://www.w3.org/2000/svg','svg');
+		addElm(this.populateElement,this);
+	}
+}
+defineElm(CapsuleSvg);
 
 /**
  * Used to create reactive HTML
@@ -422,6 +444,27 @@ defineElm(Capsule);
  * @returns A function which when called will produce a Capsule element
  */
 function html(strings,...keys){
+	return generateHtml(strings,keys,Capsule);
+}
+/**
+ * Used to create reactive SVG
+ * 
+ * @param {string[]} strings The strings from the string template
+ * @param {...any} keys The keys from the string template
+ * @returns A function which when called will produce a Capsule element
+ */
+function svg(strings,...keys){
+	return generateHtml(strings,keys,CapsuleSvg);
+}
+/**
+ * Used to create reactive HTML for any namespace
+ * 
+ * @param {string[]} strings The strings from the string template
+ * @param {any[]} keys The keys from the string template
+ * @param {class} capsuleType The type of capsule to use (used to allow different namespaces such as SVG)
+ * @returns A function which when called will produce a Capsule element
+ */
+function generateHtml(strings,keys,capsuleType){
 	// Create a function which will return the reactive HTML
 	// The bindings provided to this function will determine when this should update 
 	let htmlFunc=(...bindings)=>{
@@ -485,7 +528,7 @@ function html(strings,...keys){
 
 		// Create an empty capsule
 		let updateFunc=()=>populate();
-		let capsule=new Capsule(updateFunc,...bindings);
+		let capsule=new capsuleType(updateFunc,...bindings);
 		
 		// Populate and return the capsule
 		updateFunc();
@@ -541,9 +584,15 @@ function html(strings,...keys){
 					// If the placeholder value is an element or array then create a placeholder comment to mark its location
 					replacedHtmlText=replacedHtmlText.replace("¡("+i+")","<!--¡["+i+"]-->");
 				}else if(isAttr(p)){
-					// If the placeholder value is an attribute then keep the placeholder for now but wrap it in quotes so it can be set as the attribute
-					// Add an "attribute-#" to be able to search for the element later
-					replacedHtmlText=replacedHtmlText.replace(`¡(${i})`,`"¡(${i})" attribute-${i}="true" `);
+					// If the placeholder value is an attribute then add a data attribute with the placeholder value, this will get replaced later
+					// Also add a "data-attribute-#" attribute to allow searching for the element later
+					let attrRegex=`[^\\t\\n\\f \\/>"'=]+\\s*=\\s*`;// Finds a valid attribute
+					let valueRegex=`¡\\(${i}\\)`;// Finds the placeholder value
+					// Note that "data-" must be added to both placeholder attributes to prevent invalid attribute warnings in html
+					replacedHtmlText=replacedHtmlText.replace(
+						RegExp(`(${attrRegex})(${valueRegex})`),
+						(match,g1,g2)=>`data-${g1}"${g2}" data-attribute-${i}="true" `
+					);
 				}else{
 					// Otherwise use the placeholder value as a string and replace its placeholder in the HTML
 					replacedHtmlText=replacedHtmlText.replace("¡("+i+")",cleanString(p+""));
@@ -596,7 +645,7 @@ function html(strings,...keys){
 
 					// Create variables to represent the placeholder values that need to be searched for
 					let placeholderVal=`¡(${i})`;
-					let placeholderAttr=`attribute-${i}`;
+					let placeholderAttr=`data-attribute-${i}`;
 
 					// Locate the element with the attribute
 					let elm=getElm(`[${placeholderAttr}]`,capsule);
@@ -604,9 +653,13 @@ function html(strings,...keys){
 					// Find the correct attribute
 					let attrList=[...elm.attributes];
 					let matched=attrList.find((a)=>a.value==placeholderVal);
+					// Remove the attribute
+					elm.removeAttribute(matched.name);
+					// Remove the first occurrence of "data-" in the name to get the real attribute name
+					let attrName=matched.name.replace("data-","");
 
 					// Attach the attribute
-					p.attach(matched.name,elm);
+					p.attach(attrName,elm);
 					// Update the attribute
 					p.update();
 

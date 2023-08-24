@@ -287,9 +287,6 @@ class Color extends Vector{
 	get s(){
 		return this.array[1]??0;
 	}
-	get c(){
-		return this.array[1]??0;
-	}
 
 	set g(val){
 		return this.array[1]=val;
@@ -344,7 +341,15 @@ function hsv(h,s,v,a){
 	let col=new Color(h,s,v,a,COLOR.HSV);
 	return col;
 }
+function HSV(h,s,v,a){
+	let col=new Color(h/255,s/255,v/255,a/255,COLOR.HSV);
+	return col;
+}
 function hsl(h,s,l,a){
 	let col=new Color(h,s,l,a,COLOR.HSL);
+	return col;
+}
+function HSL(h,s,l,a){
+	let col=new Color(h/255,s/255,l/255,a/255,COLOR.HSL);
 	return col;
 }

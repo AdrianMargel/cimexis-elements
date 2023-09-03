@@ -628,6 +628,7 @@ function generateHtml(strings,keys,capsuleType){
 				}else if(Array.isArray(p)){
 					// Replace the placeholder comment with the array of values/elements
 					p=p.map(x=>{
+						//TODO: handle nested arrays with recursive flat mapping
 						if(isElm(x)){
 							if(isCapsule(x)){
 								capsule.addedCapsules.push(x);

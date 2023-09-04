@@ -160,7 +160,7 @@ class Color extends Vector{
 					d=max-min,
 					h,
 					s=(max==0?0:d/max),
-					v=max/255;
+					v=max;
 
 				switch(max){
 					case min:

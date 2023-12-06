@@ -335,14 +335,14 @@ function rgb(...rgba){
 	return new Color(...rgba);
 }
 function RGB(...rgba){
-	return new Color(...rgba.map(x=>x/255));
+	return new Color(...rgba.map(x=>x==null?x:x/255));
 }
 function hsv(h,s,v,a){
 	let col=new Color(h,s,v,a,COLOR.HSV);
 	return col;
 }
 function HSV(h,s,v,a){
-	let col=new Color(h/255,s/255,v/255,a/255,COLOR.HSV);
+	let col=new Color(h/255,s/255,v/255,a==null?a:a/255,COLOR.HSV);
 	return col;
 }
 function hsl(h,s,l,a){
@@ -350,6 +350,6 @@ function hsl(h,s,l,a){
 	return col;
 }
 function HSL(h,s,l,a){
-	let col=new Color(h/255,s/255,l/255,a/255,COLOR.HSL);
+	let col=new Color(h/255,s/255,l/255,a==null?a:a/255,COLOR.HSL);
 	return col;
 }

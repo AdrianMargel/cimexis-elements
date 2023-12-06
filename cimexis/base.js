@@ -11,6 +11,8 @@
 		-txt``
 		-persistance>naivigation (browser back and forward)
 		-documentation types/return types
+		-helper function for adding a capsule to an element
+		-helper function as shorthand for html`${a}`(a) 
 */
 
 
@@ -267,6 +269,42 @@ function def(definition,...bindings){
 function link(toRun,...bindings){
 	bindings.forEach((b)=>{b.sub(toRun)});
 	return toRun;
+}
+/**
+ * Unwraps a reactive proxy getting the original data
+ * 
+ * @param {*} data The bound data to unbind
+ * @returns A copy of the original data
+ */
+function unbind(data){
+
+	// If the data is not bound then return it as is
+	//TODO: consider using a symbol for isBound instead
+	if(data?.isBound!==true){
+		return data;
+	}
+	
+	// If the bound data is a leaf node then return the unbound inner data
+	if("data" in data){
+		return unbind(data.data);
+	}
+
+	// If the bound data is an array then create a new array with the unbound items
+	if(Array.isArray(data)){
+		return data.map(d=>unbind(d));
+	}
+
+	// Otherwise treat the bound data as an object
+	// Create a new unbound object from the data, excluding proxy functions
+	let obj={};
+	//TODO: check if the proxy functions can avoid being placed the object in the first place
+	let blacklist=["sub","unSub","lock","unlock","isLocked","update"];
+	for(let key in data){
+		if(!blacklist.includes(key)){
+			obj[key]=unbind(data[key]);
+		}
+	}
+	return obj;
 }
 
 //#endregion

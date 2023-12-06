@@ -122,6 +122,10 @@ class Vector{
 		}
 		return Math.sqrt(diff.reduce((a,curr)=>a+curr**2,0))<=dist;
 	}
+	same(vec){
+		let arr=vec.array??vec;
+		return this.array.every((x,i)=>x==(arr[i]??x))
+	}
 
 	nrm(val=1){
 		let mag=this.mag();

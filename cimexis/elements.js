@@ -2,141 +2,10 @@
 /*
 
 	This file is kind of a mess, or at least the styles are.
-	The CSS still isn't very elagent and many of the things I tried to midigate that are still very experimental.
+	The CSS still isn't very elagent and some of the things I tried to midigate that are still very experimental.
 	However the elements themselves I'm pretty happy with.
 
-	A better reference to look at is the example.js file 
-
 */
-
-function sigmoid(x){
-	return 1/(1+Math.pow(Math.E,-x));
-}
-function blendColors(col1,col2,mix){
-	let invMix=1-mix;
-	return new Color(
-		col1.r*invMix+col2.r*mix,
-		col1.g*invMix+col2.g*mix,
-		col1.b*invMix+col2.b*mix,
-		col1.a*invMix+col2.a*mix,
-	);
-}
-function blendValues(v1,v2,mix){
-	let invMix=1-mix;
-	return v1*invMix+v2*mix;
-}
-let theme;
-{
-	let white=new Color(1,1,1);
-	let black=new Color(0,0,0);
-
-	let colorScale=(a,base)=>{
-		// a = [0,1]
-		let blend=(a-0.5)*2;
-
-		if(blend>0){
-			return blendColors(base,white,blend);
-		}else{
-			return blendColors(base,black,-blend);
-		}
-	};
-	let greyStep=(a)=>{
-		// a = (-infinity,infinity)
-		let base=new Color("#36363F");
-
-		let minCol=Math.min(base.r,base.g,base.b);
-		let maxCol=Math.max(base.r,base.g,base.b);
-
-		let darkDist=maxCol;
-		let lightDist=1-minCol;
-		let totalDist=darkDist+lightDist;
-
-		let lightScale=lightDist/totalDist;
-		let darkScale=darkDist/totalDist;
-
-		if(a>0){
-			a*=darkScale;
-		}else{
-			a*=lightScale;
-		}
-		a*=0.6;
-		return colorScale(sigmoid(a),base);
-	};
-	let genericStep=(a,maxSize,minSize,mid)=>{
-		let smallDist=mid-minSize;
-		let bigDist=maxSize-mid;
-		let totalDist=smallDist+bigDist;
-
-		let smallScale=smallDist/totalDist;
-		let bigScale=bigDist/totalDist;
-		if(a>0){
-			a*=smallScale;
-			let blend=(sigmoid(a)-0.5)*2;
-			return blendValues(mid,maxSize,blend);
-		}else{
-			a*=bigScale;
-			let blend=(sigmoid(a)-0.5)*2;
-			return blendValues(mid,minSize,-blend);
-		}
-
-	}
-	let fontSizeStep=(a)=>{
-		return "font-size:"+Math.floor(genericStep(a,150,10,24))+"px;";
-	}
-	let boxShadowStep=(a)=>{
-		return "box-shadow: 0 0 "+genericStep(a,80,0,30)+"px #00000080;";
-	}
-	let primary=`font-family: 'Sen', sans-serif;`;
-	let secondary=`font-family: 'Montserrat', sans-serif;`;
-	let center=`
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	`;
-	let centerX=`
-		display: flex;
-		justify-content: center;
-	`;
-	let centerY=`
-		display: flex;
-		align-items: center;
-	`;
-	let centerText=`text-align: center;`;
-	theme={
-		color:{
-			greyStep,
-			highlight: "#7AC16C",
-			white,
-			black
-		},
-		font:{
-			primary,
-			secondary,
-			fontSizeStep,
-			standard:`
-				font-weight: 400;
-				${secondary}
-				${fontSizeStep(0)}
-			`,
-			title:`
-				font-weight: 700;
-				${primary}
-				${centerText}
-				${fontSizeStep(2)}
-			`
-		},
-		elementReset:`
-			display: block;
-		`,
-		boxShadowStep,
-		center,
-		centerX,
-		centerY,
-		centerText
-	}
-}
-
-//${Array.apply(null, Array(10)).map((_,i)=>`<div style="${theme.boxShadowStep(i-5)}">TEST${i-5}</div>`)}
 
 class Input extends CustomElm{
 	constructor(text){
@@ -364,7 +233,7 @@ defineElm(Nav,(()=>{
 			font-weight: 700;
 			${theme.font.primary}
 			${theme.centerText}
-			${theme.font.fontSizeStep(-0.5)}
+			${theme.font.sizeStep(-0.5)}
 			color: ${transWhite};
 
 			border: none;
@@ -588,7 +457,7 @@ defineElm(Page,scss`&{
 
 	h2{
 		text-align: center;
-		${theme.font.fontSizeStep(3)}
+		${theme.font.sizeStep(3)}
 		margin: 20px 0;
 	}
 	p{
@@ -664,6 +533,246 @@ defineElm(AboutPage,scss`&{
 
 }`);
 
+class ElementExamples extends CustomElm{
+	constructor(){
+		super();
+		let text=bind("test");
+
+		let toggle=bind(true);
+		let invToggle=def(()=>!toggle.data,toggle);
+		let item1Name=bind("Item 1");
+		let item2Name=bind("Item 2");
+		let item1BtnText=def(()=>"Open "+item1Name.data,item1Name);
+		let item2BtnText=def(()=>"Open "+item2Name.data,item2Name);
+
+		let list=bind(["An item","Another item","Some other item"]);
+
+		let htmlText=bind(`<li>some text</li>`);
+
+
+		this.define(html`
+			<div class="line"><h3>EX 1</h3></div>
+			<div class="ex1">
+				<p class="center">This is an example of two linked text inputs</p>
+				<div>
+					${new Input(text)}
+					${new Input(text)}
+				</div>
+				<p class="center">
+					The text currently is:<br/>
+					<span>${html`${text}`(text)}</span>
+				</p>
+			</div>
+
+			<div class="line"><h3>EX 2</h3></div>
+			<div class="ex2">
+				<p class="center">This is an example of a conditional switch</p>
+				<div class="buttons">
+					${new ButtonClickable(item1BtnText,()=>{toggle.data=true},toggle)}
+					${new ButtonClickable(item2BtnText,()=>{toggle.data=false},invToggle)}
+				</div>
+				<div class="item">
+				${()=>{
+					let a,b;
+					
+					return html`${
+						()=>toggle.data?
+						a=a??html`
+							<p class="center">
+								Hello! I am ${item1Name}<br>
+								You can rename me though:
+							</p>
+							${new Input(item1Name)}
+						`(item1Name):
+						b=b??html`
+							<p class="center">
+								Hey there, I am ${item2Name}<br>
+								You can rename me though:
+							</p>
+							${new Input(item2Name)}
+						`(item2Name)
+					}`(toggle);
+				}}
+				</div>
+			</div>
+
+			<div class="line"><h3>EX 3</h3></div>
+			<div class="ex3">
+				<p class="center">This is an example of a list</p>
+				<div class="buttons">
+					${new ButtonClickable("Add Item",()=>{
+						// Lock the list before doing any operations on it
+						// This ensures that it will only fire a maximum of one update event
+						list.lock();
+						list.unshift("new item "+Math.floor(Math.random()*1000));
+						list.unlock();
+					})}
+				</div>
+				<div class="list">
+					${html`
+						<p>Length: ${()=>list.length}</p> 
+						<ul>
+							${()=>
+								list.map((item,i)=>{
+									return html`
+										<li>
+											<span class="index">${i}</span>
+											${item} ${new ButtonLink("(remove)",()=>{
+												// Lock the list before doing any operations on it
+												// This ensures that it will only fire a maximum of one update event
+												list.lock();
+												list.splice(i,1);
+												list.unlock();
+											})}
+										</li>
+									`(item)
+									}
+								)
+							}
+						</ul>
+					`(list)}
+				</div>
+				<div class="buttons">
+					${new ButtonLink("(rename a random Item)",()=>{
+						if(list.length>0){
+							let index=Math.floor(Math.random()*list.length);
+							list[index].data="renamed item "+Math.floor(Math.random()*1000);
+						}
+					})}
+				</div>
+			</div>
+
+			<div class="line"><h3>EX 4</h3></div>
+			<div class="ex4">
+				<p class="center">String rendering with HTML parsing</p>
+				<div>
+					${new Input(htmlText)}
+				</div>
+				<p class="center">
+					The text currently is:<br/>
+					<div class="html">${html`${htmlText}`(htmlText)}</div>
+				</p>
+			</div>
+
+			<div class="line"><h3>EX 5</h3></div>
+			<div class="ex5">
+				<p class="center">String rendering without HTML parsing</p>
+				<div>
+					${new Input(htmlText)}
+				</div>
+				<p class="center">
+					The text currently is:<br/>
+					<span class="text">${html`${()=>safe(htmlText.data)}`(htmlText)}</span>
+				</p>
+			</div>
+		`);
+	}
+}
+defineElm(ElementExamples,scss`&{
+	> .line{
+		border-bottom: 4px solid ${theme.color.greyStep(0)};
+		${theme.center}
+		margin: 40px 30px;
+		h3{
+			color: ${theme.color.greyStep(3)};
+			background-color: ${theme.color.greyStep(-1)};
+			padding: 0 20px;
+
+			font-weight: 700;
+			${theme.font.sizeStep(-1)}
+			position: absolute;
+		}
+	}
+	> .ex1{
+		> div{
+			${theme.center}
+			> ${Input}{
+				margin: 20px;
+			}
+		}
+		span{
+			font-weight: 700;
+			padding: 0 20px;
+			border-radius: 20px;
+			background-color: ${theme.color.greyStep(1)};
+		}
+	}
+	> .ex2{
+		> .buttons{
+			${theme.center}
+			> ${ButtonClickable}{
+				margin: 20px;
+			}
+		}
+		> .item{
+			> ${Input}{
+				${theme.center}
+			}
+		}
+	}
+	> .ex3{
+		> .buttons{
+			${theme.center}
+			> ${ButtonClickable}{
+				margin: 20px;
+			}
+		}
+		> .list{
+			${theme.center}
+			> *{
+				flex-basis: 0;
+				flex-grow: 1;
+				margin: 0;
+			}
+			> p{
+				text-align: right;
+				margin-right: 20px;
+			}
+			li{
+				margin: 10px 0;
+				display: flex;
+
+				${ButtonLink}{
+					margin-left: 10px;
+				}
+			}
+			.index{
+				${theme.center}
+				font-weight: 700;
+				width: 40px;
+				border-radius: 20px;
+				background-color: ${theme.color.greyStep(1)};
+				margin-right: 10px;
+			}
+		}
+	}
+	> .ex4{
+		> div{
+			${theme.center}
+			> ${Input}{
+				margin: 20px;
+			}
+		}
+		.html{
+			${theme.center}
+			min-height: 100px;
+			background-color: ${theme.color.greyStep(-0.5)};
+		}
+	}
+	> .ex5{
+		> div{
+			${theme.center}
+			> ${Input}{
+				margin: 20px;
+			}
+		}
+		.text{
+			padding: 0 20px;
+			border-radius: 20px;
+			background-color: ${theme.color.greyStep(0)};
+		}
+	}
+}`);
 
 
 // let a=html`<div>${html`<div>testA</div>`()}</div>`();

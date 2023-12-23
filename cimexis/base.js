@@ -1090,6 +1090,10 @@ class CustomElm extends HTMLElement{
 	attr(attrName,value){
 		let bindFunc=(...bindings)=>{
 			let toAdd=new Attribute(value,...bindings);
+			// Attributes added this way are not unlocked by the capsule, so we unlock them when they are added
+			// TODO: look into tying this to the capsule so that it does not continue updating after being disconnected from the dom  
+			toAdd.unlock();
+
 			this.attributeList.push(toAdd);
 			toAdd.attach(attrName,this);
 			toAdd.update();

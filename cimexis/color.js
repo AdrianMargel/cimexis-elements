@@ -294,9 +294,6 @@ class Color extends Vector{
 	set s(val){
 		return this.array[1]=val;
 	}
-	set c(val){
-		return this.array[1]=val;
-	}
 
 	// z
 	get b(){

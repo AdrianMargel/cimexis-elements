@@ -8,6 +8,8 @@ function clamp(a,min,max){
 	return Math.max(Math.min(a,max),min);
 }
 function random(min,max){
+	if(arguments.length==0)
+		return Math.random();
 	let diff=max-min;
 	return min+Math.random()*diff;
 }
@@ -42,3 +44,5 @@ const sign=Math.sign;
 const sin=Math.sin;
 const cos=Math.cos;
 const tan=Math.tan;
+
+const rand=random;

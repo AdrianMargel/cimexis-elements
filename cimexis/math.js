@@ -10,6 +10,8 @@ function clamp(a,min,max){
 function random(min,max){
 	if(arguments.length==0)
 		return Math.random();
+	if(arguments.length==1)
+		return Math.random()*min;
 	let diff=max-min;
 	return min+Math.random()*diff;
 }

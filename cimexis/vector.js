@@ -36,7 +36,7 @@ class Vector{
 		if(typeof val=="number"){
 			this.forAll(()=>val);
 		}else{
-			let arr=vec.array??vec;
+			let arr=val.array??val;
 			this.clr();
 			this.array.push(...arr);
 		}

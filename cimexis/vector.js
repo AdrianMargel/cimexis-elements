@@ -275,6 +275,28 @@ class Vector{
 	buildKey("",4);
 	Object.defineProperties(Vector.prototype,swizzles);
 }
+{
+	let refs=["X","Y","Z","W"];
+	let swizzles={};
+	function buildKey(key,count){
+		if(count==0){
+			let ids=key.split("").map(x=>refs.indexOf(x));
+			swizzles[key]={
+				get:function(){
+					return Vec(ids.map((i)=>this.array[i]??0));
+				},
+			};
+			return;
+		}
+		refs.forEach(r=>{
+			buildKey(key+r,count-1);
+		});
+	}
+	buildKey("",2);
+	buildKey("",3);
+	buildKey("",4);
+	Object.defineProperties(Vector.prototype,swizzles);
+}
 
 function Vec(...data){
 	return new Vector(...data);

@@ -1,3 +1,5 @@
+//TODO: consider extending from array
+//	this would allow for indexed gets and other functions like map by default
 class Vector{
 	constructor(...data){
 		if(data.length==1&&typeof data[0]!="number"){

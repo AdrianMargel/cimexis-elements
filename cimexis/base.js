@@ -13,6 +13,9 @@
 		-documentation types/return types
 		-helper function for adding a capsule to an element
 		-helper function as shorthand for html`${a}`(a) 
+		-bound objects/bubbling events
+		
+		-double check the way insertion works that it is not double triggering any connectedCallbacks (including in the case of nested capsules)
 */
 
 

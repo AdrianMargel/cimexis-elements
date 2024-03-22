@@ -12,7 +12,7 @@
 		-persistance>naivigation (browser back and forward)
 		-documentation types/return types
 		-helper function for adding a capsule to an element
-		-helper function as shorthand for html`${a}`(a) 
+		-helper function as shorthand for html`${a}`(a)
 		-bound objects/bubbling events
 		
 		-double check the way insertion works that it is not double triggering any connectedCallbacks (including in the case of nested capsules)
@@ -1279,6 +1279,7 @@ class GenericAnimation{
 		};
 		this.elapsed=0;
 		this.time=0;
+		this.isPlaying=false;
 	}
 	/**
 	 * Run the animation
@@ -1310,13 +1311,24 @@ class GenericAnimation{
 		return this;
 	}
 	/**
+	 * Reset the animation to the beginning
+	 * 
+	 * @returns This animation object
+	 */
+	reset(){
+		// Reset the animation elapsed time to 0
+		this.elapsed=0;
+
+		return this;
+	}
+	/**
 	 * Starts playing the animation from the beginning
 	 * 
 	 * @returns This animation object
 	 */
 	start(){
-		// Reset the animation elapsed time to 0
-		this.elapsed=0;
+		// Reset the animation
+		this.reset();
 		// Cause the animation to start playing
 		this.resume();
 
@@ -1328,6 +1340,9 @@ class GenericAnimation{
 	 * @returns This animation object
 	 */
 	resume(){
+		if(this.isPlaying)
+			return;
+		this.isPlaying=true;
 		// Update the time with the current time
 		this.time=getTime();
 		// Subscribe to the animationUpdateNum so that the animationSub will be triggered each frame 
@@ -1343,6 +1358,9 @@ class GenericAnimation{
 	 * @returns This animation object
 	 */
 	stop(){
+		if(!this.isPlaying)
+			return;
+		this.isPlaying=false;
 		// Unsubscribe from animationUpdateNum so that the animationSub will no longer be triggered each frame
 		animationUpdateNum.unSub(this.animationSub);
 
